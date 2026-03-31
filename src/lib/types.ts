@@ -1,4 +1,13 @@
+export interface ServiceCatalogItem {
+  id: string;
+  description: string;
+  detail: string;
+  unit: string;
+  unitPrice: number;
+}
+
 export interface ServiceForecast {
+  serviceId: string;
   description: string;
   detail: string;
   jplOperating: boolean;
@@ -40,17 +49,18 @@ export interface LeasedEquipmentRow {
 }
 
 export interface ExecutedServiceRow {
+  serviceId: string;
   team: string;
   project: string;
   description: string;
   detail: string;
   unit: string;
+  unitPrice: number;
   kmStart: string;
   kmEnd: string;
   executedDay: number;
   executedMonth: number;
   plannedMonth: number;
-  unitPrice: number;
 }
 
 export interface PhotoEntry {
@@ -60,14 +70,35 @@ export interface PhotoEntry {
   km: string;
 }
 
-export interface DiaryEntry {
+export interface MonthlyPlanningEntry {
   id: string;
-  number: number;
-  date: string;
+  projectId: string;
+  month: number; // 0-11
+  year: number;
+  services: { serviceId: string; plannedMonth: number }[];
+  observations: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
   contract: string;
   highway: string;
+  office: string;
   contractStart: string;
   contractEnd: string;
+  serviceCatalog: ServiceCatalogItem[];
+  defaultStaff: { team: string; roles: string[] }[];
+  defaultEquipment: Omit<EquipmentRow, 'operating' | 'stopped'>[];
+  defaultContractors: ContractorRow[];
+}
+
+export interface DiaryEntry {
+  id: string;
+  projectId: string;
+  number: number;
+  date: string;
+  weather: { clear: boolean; cloudyRain: boolean; cloudy: boolean; rainy: boolean };
   serviceForecast: ServiceForecast[];
   staffJpl: StaffRow[];
   contractors: ContractorRow[];
@@ -78,13 +109,14 @@ export interface DiaryEntry {
   photos: PhotoEntry[];
 }
 
-export const DEFAULT_SERVICES: Omit<ServiceForecast, 'jplOperating' | 'jplStopped' | 'thirdOperating' | 'thirdStopped'>[] = [
-  { description: 'Serviços Auxiliares', detail: 'CONCRETO CICLÓPICO FCK = 20 MPA' },
-  { description: 'Serviços Auxiliares', detail: 'CONCRETO FCK = 20 MPA' },
-  { description: 'Pavimentação', detail: 'TAPA BURACO COM PINTURA DE LIGAÇÃO' },
-  { description: 'Pavimentação', detail: 'CORREÇÃO DE DEFEITOS POR FRESAGEM' },
-  { description: 'Pavimentação', detail: 'MICRORREVESTIMENTO A FRIO' },
-  { description: 'Conservação', detail: 'CONSERVAÇÃO ROTINEIRA' },
+// Default project template
+export const DEFAULT_SERVICE_CATALOG: ServiceCatalogItem[] = [
+  { id: crypto.randomUUID(), description: 'Serviços Auxiliares', detail: 'CONCRETO CICLÓPICO FCK = 20 MPA', unit: 'm³', unitPrice: 0 },
+  { id: crypto.randomUUID(), description: 'Serviços Auxiliares', detail: 'CONCRETO FCK = 20 MPA', unit: 'm³', unitPrice: 0 },
+  { id: crypto.randomUUID(), description: 'Pavimentação', detail: 'TAPA BURACO COM PINTURA DE LIGAÇÃO', unit: 't', unitPrice: 958.33 },
+  { id: crypto.randomUUID(), description: 'Pavimentação', detail: 'CORREÇÃO DE DEFEITOS POR FRESAGEM', unit: 'm³', unitPrice: 0 },
+  { id: crypto.randomUUID(), description: 'Pavimentação', detail: 'MICRORREVESTIMENTO A FRIO', unit: 'm²', unitPrice: 0 },
+  { id: crypto.randomUUID(), description: 'Conservação', detail: 'CONSERVAÇÃO ROTINEIRA', unit: 'mês', unitPrice: 97764.07 },
 ];
 
 export const DEFAULT_STAFF: { team: string; roles: string[] }[] = [
@@ -111,38 +143,61 @@ export const DEFAULT_CONTRACTORS: ContractorRow[] = [
   { contractNo: '040/ACG', companyName: 'Viaplan', employees: 5, contractObject: 'Conserva Rotineira' },
 ];
 
-export const DEFAULT_EXECUTED_SERVICES: Omit<ExecutedServiceRow, 'kmStart' | 'kmEnd' | 'executedDay' | 'executedMonth' | 'plannedMonth'>[] = [
-  { team: 'JPL GOMES', project: '511/2023', description: 'Serviços Auxiliares', detail: 'CONCRETO CICLÓPICO FCK = 20 MPA', unit: 'm³', unitPrice: 0 },
-  { team: 'JPL GOMES', project: '511/2023', description: 'Serviços Auxiliares', detail: 'CONCRETO FCK = 20 MPA', unit: 'm³', unitPrice: 0 },
-  { team: 'JPL GOMES', project: '511/2023', description: 'Pavimentação', detail: 'TAPA BURACO COM PINTURA DE LIGAÇÃO', unit: 't', unitPrice: 958.33 },
-  { team: 'JPL GOMES', project: '511/2023', description: 'Pavimentação', detail: 'CORREÇÃO DE DEFEITOS POR FRESAGEM', unit: 'm³', unitPrice: 0 },
-  { team: 'JPL GOMES', project: '511/2023', description: 'Pavimentação', detail: 'MICRORREVESTIMENTO A FRIO', unit: 'm²', unitPrice: 0 },
-  { team: 'JPL GOMES', project: '511/2023', description: 'Conservação', detail: 'CONSERVAÇÃO ROTINEIRA', unit: 'mês', unitPrice: 97764.07 },
-];
+export function createDefaultProject(): Project {
+  return {
+    id: crypto.randomUUID(),
+    name: 'JPL GOMES — BR-060/BR-262',
+    contract: '511/2023',
+    highway: 'BR-060/MS - KM 321,80 AO KM 355,70 / BR-262/MS - KM 343,70 AO KM 366,80',
+    office: 'Campo Grande - MS',
+    contractStart: '2023-10-01',
+    contractEnd: '2026-09-30',
+    serviceCatalog: DEFAULT_SERVICE_CATALOG.map(s => ({ ...s, id: crypto.randomUUID() })),
+    defaultStaff: DEFAULT_STAFF.map(s => ({ ...s })),
+    defaultEquipment: DEFAULT_EQUIPMENT.map(e => ({ ...e })),
+    defaultContractors: DEFAULT_CONTRACTORS.map(c => ({ ...c })),
+  };
+}
 
-export function createNewDiary(diaries: DiaryEntry[]): DiaryEntry {
-  const nextNumber = diaries.length > 0 ? Math.max(...diaries.map(d => d.number)) + 1 : 1;
+export function createNewDiary(project: Project, diaries: DiaryEntry[]): DiaryEntry {
+  const projectDiaries = diaries.filter(d => d.projectId === project.id);
+  const nextNumber = projectDiaries.length > 0 ? Math.max(...projectDiaries.map(d => d.number)) + 1 : 1;
   const today = new Date().toISOString().split('T')[0];
 
   return {
     id: crypto.randomUUID(),
+    projectId: project.id,
     number: nextNumber,
     date: today,
-    contract: '511/2023',
-    highway: 'BR-060/MS - BR-262/MS',
-    contractStart: '2023-10-01',
-    contractEnd: '2026-09-30',
-    serviceForecast: DEFAULT_SERVICES.map(s => ({
-      ...s, jplOperating: false, jplStopped: false, thirdOperating: false, thirdStopped: false,
+    weather: { clear: false, cloudyRain: false, cloudy: false, rainy: false },
+    serviceForecast: project.serviceCatalog.map(s => ({
+      serviceId: s.id,
+      description: s.description,
+      detail: s.detail,
+      jplOperating: false,
+      jplStopped: false,
+      thirdOperating: false,
+      thirdStopped: false,
     })),
-    staffJpl: DEFAULT_STAFF.flatMap(t =>
+    staffJpl: project.defaultStaff.flatMap(t =>
       t.roles.map(r => ({ team: t.team, role: r, quantity: 0, observations: '' }))
     ),
-    contractors: [...DEFAULT_CONTRACTORS],
-    equipmentJpl: DEFAULT_EQUIPMENT.map(e => ({ ...e, operating: false, stopped: false })),
+    contractors: [...project.defaultContractors],
+    equipmentJpl: project.defaultEquipment.map(e => ({ ...e, operating: false, stopped: false })),
     leasedEquipment: [],
-    executedServices: DEFAULT_EXECUTED_SERVICES.map(s => ({
-      ...s, kmStart: '', kmEnd: '', executedDay: 0, executedMonth: 0, plannedMonth: 0,
+    executedServices: project.serviceCatalog.map(s => ({
+      serviceId: s.id,
+      team: 'JPL GOMES',
+      project: project.contract,
+      description: s.description,
+      detail: s.detail,
+      unit: s.unit,
+      unitPrice: s.unitPrice,
+      kmStart: '',
+      kmEnd: '',
+      executedDay: 0,
+      executedMonth: 0,
+      plannedMonth: 0,
     })),
     observations: '',
     photos: [],
@@ -161,6 +216,7 @@ export function getMonthlyAccumulated(
   return diaries
     .filter(d => {
       if (d.id === currentDiary.id) return false;
+      if (d.projectId !== currentDiary.projectId) return false;
       const dd = new Date(d.date);
       return dd.getMonth() === month && dd.getFullYear() === year && dd <= currentDate;
     })

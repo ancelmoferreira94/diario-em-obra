@@ -1,12 +1,16 @@
-import { DiaryEntry } from '@/lib/types';
+import { DiaryEntry, Project } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, FileText, Users, DollarSign } from 'lucide-react';
+import { Plus, FileText, Users, DollarSign, ArrowLeft, Settings, Calendar } from 'lucide-react';
 
 interface DiaryListProps {
+  project: Project;
   diaries: DiaryEntry[];
   onNew: () => void;
   onOpen: (diary: DiaryEntry) => void;
+  onBack: () => void;
+  onSettings: () => void;
+  onPlanning: () => void;
 }
 
 function formatDate(dateStr: string) {
@@ -27,31 +31,35 @@ function formatCurrency(value: number): string {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-const DiaryList = ({ diaries, onNew, onOpen }: DiaryListProps) => {
+const DiaryList = ({ project, diaries, onNew, onOpen, onBack, onSettings, onPlanning }: DiaryListProps) => {
   const sorted = [...diaries].sort((a, b) => b.number - a.number);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 animate-fade-in">
-      {/* Header */}
       <div className="bg-primary text-primary-foreground rounded-lg p-6 mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-2xl font-bold">Diário de Obra</h1>
-            <p className="text-primary-foreground/80 text-sm mt-1">
-              JPL GOMES ENGENHARIA LTDA — Contrato 511/2023
-            </p>
-            <p className="text-primary-foreground/60 text-xs mt-0.5">
-              BR-060/MS — BR-262/MS
-            </p>
+            <p className="text-primary-foreground/80 text-sm mt-1">{project.name}</p>
+            <p className="text-primary-foreground/60 text-xs mt-0.5">Contrato: {project.contract}</p>
           </div>
-          <Button onClick={onNew} variant="secondary" size="lg" className="gap-2">
-            <Plus className="h-5 w-5" />
-            Novo Diário
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button onClick={onPlanning} variant="secondary" size="sm" className="gap-2">
+              <Calendar className="h-4 w-4" /> Planejamento
+            </Button>
+            <Button onClick={onSettings} variant="secondary" size="sm" className="gap-2">
+              <Settings className="h-4 w-4" /> Configurações
+            </Button>
+            <Button onClick={onNew} variant="secondary" size="lg" className="gap-2">
+              <Plus className="h-5 w-5" /> Novo Diário
+            </Button>
+          </div>
         </div>
+        <Button variant="ghost" size="sm" onClick={onBack} className="mt-2 text-primary-foreground/70 gap-1.5 -ml-2">
+          <ArrowLeft className="h-4 w-4" /> Voltar às Obras
+        </Button>
       </div>
 
-      {/* List */}
       {sorted.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">
           <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />

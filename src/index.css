@@ -119,6 +119,8 @@
 }
 
 @media print {
-  body { background: white !important; }
+  body { background: white !important; margin: 0 !important; padding: 0 !important; }
   .no-print { display: none !important; }
+  .print-layout { display: block !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }

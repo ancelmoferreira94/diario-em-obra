@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { DiaryEntry, getMonthlyAccumulated } from '@/lib/types';
+import { DiaryEntry, Project, getMonthlyAccumulated } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -7,8 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Save, X, Pencil, Printer, Plus, Trash2, Camera } from 'lucide-react';
 import { toast } from 'sonner';
+import DiaryPrintLayout from '@/components/DiaryPrintLayout';
 
 interface DiaryFormProps {
+  project: Project;
   diary: DiaryEntry;
   allDiaries: DiaryEntry[];
   readOnly: boolean;
@@ -26,9 +28,10 @@ function formatCurrency(value: number): string {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onEdit }: DiaryFormProps) => {
+const WEEKDAYS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+
+const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCancel, onEdit }: DiaryFormProps) => {
   const [diary, setDiary] = useState<DiaryEntry>(() => {
-    // Calculate monthly accumulated for each service
     const d = { ...initial };
     d.executedServices = d.executedServices.map((s, i) => ({
       ...s,
@@ -36,6 +39,7 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
     }));
     return d;
   });
+  const [showPrint, setShowPrint] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,7 +52,13 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
     toast.success('Diário salvo com sucesso!');
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    setShowPrint(true);
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => setShowPrint(false), 500);
+    }, 100);
+  };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -89,6 +99,13 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
     { dayValue: 0, monthValue: 0, plannedValue: 0 }
   );
 
+  const dateObj = new Date(diary.date + 'T12:00:00');
+  const weekday = WEEKDAYS[dateObj.getDay()];
+
+  if (showPrint) {
+    return <DiaryPrintLayout diary={diary} project={project} financialData={financialData} financialTotal={financialTotal} />;
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 animate-fade-in">
       {/* Header */}
@@ -98,9 +115,7 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
             <h1 className="text-xl font-bold">
               Diário nº {String(diary.number).padStart(2, '0')}
             </h1>
-            <p className="text-primary-foreground/70 text-sm">
-              JPL GOMES ENGENHARIA LTDA
-            </p>
+            <p className="text-primary-foreground/70 text-sm">{project.name}</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             {readOnly ? (
@@ -151,7 +166,7 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
           <div className="bg-card rounded-lg p-6 border">
             <h2 className="section-title">Cabeçalho</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="Contrato" value={diary.contract} />
+              <Field label="Contrato" value={project.contract} />
               <Field label="Diário nº" value={String(diary.number).padStart(2, '0')} />
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Data</label>
@@ -163,9 +178,32 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
                   className="mt-1"
                 />
               </div>
-              <Field label="Rodovia" value={diary.highway} />
-              <Field label="Início do Contrato" value={formatDateBR(diary.contractStart)} />
-              <Field label="Término do Contrato" value={formatDateBR(diary.contractEnd)} />
+              <Field label="Dia da Semana" value={weekday} />
+              <div className="md:col-span-2">
+                <Field label="Rodovia" value={project.highway} />
+              </div>
+              <Field label="Início do Contrato" value={formatDateBR(project.contractStart)} />
+              <Field label="Término do Contrato" value={formatDateBR(project.contractEnd)} />
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Tempo</label>
+                <div className="flex flex-wrap gap-4">
+                  {[
+                    { key: 'clear' as const, label: 'Céu Claro' },
+                    { key: 'cloudyRain' as const, label: 'Nublado - panc. chuvas' },
+                    { key: 'cloudy' as const, label: 'Nublado' },
+                    { key: 'rainy' as const, label: 'Chuvoso' },
+                  ].map(w => (
+                    <label key={w.key} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={diary.weather[w.key]}
+                        disabled={readOnly}
+                        onCheckedChange={v => update('weather', { ...diary.weather, [w.key]: !!v })}
+                      />
+                      {w.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </TabsContent>
@@ -173,7 +211,32 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
         {/* SECTION 2 - Service Forecast */}
         <TabsContent value="forecast">
           <div className="bg-card rounded-lg p-6 border overflow-x-auto">
-            <h2 className="section-title">Previsão de Serviços</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="section-title mb-0 border-0 pb-0">Previsão de Serviços</h2>
+              {!readOnly && (
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => {
+                  // Add a service from catalog not yet in forecast
+                  const usedIds = diary.serviceForecast.map(s => s.serviceId);
+                  const available = project.serviceCatalog.filter(s => !usedIds.includes(s.id));
+                  if (available.length === 0) {
+                    toast.info('Todos os serviços do catálogo já estão na previsão');
+                    return;
+                  }
+                  const s = available[0];
+                  update('serviceForecast', [...diary.serviceForecast, {
+                    serviceId: s.id,
+                    description: s.description,
+                    detail: s.detail,
+                    jplOperating: false,
+                    jplStopped: false,
+                    thirdOperating: false,
+                    thirdStopped: false,
+                  }]);
+                }}>
+                  <Plus className="h-4 w-4" /> Adicionar Serviço
+                </Button>
+              )}
+            </div>
             <table className="data-table">
               <thead>
                 <tr>
@@ -183,6 +246,7 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
                   <th className="text-center">JPL Parado</th>
                   <th className="text-center">Terceiro Operando</th>
                   <th className="text-center">Terceiro Parado</th>
+                  {!readOnly && <th className="w-12"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -203,6 +267,13 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
                         />
                       </td>
                     ))}
+                    {!readOnly && (
+                      <td>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => {
+                          update('serviceForecast', diary.serviceForecast.filter((_, j) => j !== i));
+                        }}><Trash2 className="h-4 w-4" /></Button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -237,8 +308,7 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
                       <td>{s.role}</td>
                       <td>
                         <Input
-                          type="number"
-                          min={0}
+                          type="number" min={0}
                           value={s.quantity || ''}
                           onChange={e => {
                             const arr = [...diary.staffJpl];
@@ -294,28 +364,12 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
               <tbody>
                 {diary.contractors.map((c, i) => (
                   <tr key={i}>
-                    <td>
-                      <Input value={c.contractNo} disabled={readOnly} className="h-8"
-                        onChange={e => { const arr = [...diary.contractors]; arr[i] = { ...arr[i], contractNo: e.target.value }; update('contractors', arr); }} />
-                    </td>
-                    <td>
-                      <Input value={c.companyName} disabled={readOnly} className="h-8"
-                        onChange={e => { const arr = [...diary.contractors]; arr[i] = { ...arr[i], companyName: e.target.value }; update('contractors', arr); }} />
-                    </td>
-                    <td>
-                      <Input type="number" min={0} value={c.employees || ''} disabled={readOnly} className="h-8 w-20 text-center"
-                        onChange={e => { const arr = [...diary.contractors]; arr[i] = { ...arr[i], employees: parseInt(e.target.value) || 0 }; update('contractors', arr); }} />
-                    </td>
-                    <td>
-                      <Input value={c.contractObject} disabled={readOnly} className="h-8"
-                        onChange={e => { const arr = [...diary.contractors]; arr[i] = { ...arr[i], contractObject: e.target.value }; update('contractors', arr); }} />
-                    </td>
+                    <td><Input value={c.contractNo} disabled={readOnly} className="h-8" onChange={e => { const arr = [...diary.contractors]; arr[i] = { ...arr[i], contractNo: e.target.value }; update('contractors', arr); }} /></td>
+                    <td><Input value={c.companyName} disabled={readOnly} className="h-8" onChange={e => { const arr = [...diary.contractors]; arr[i] = { ...arr[i], companyName: e.target.value }; update('contractors', arr); }} /></td>
+                    <td><Input type="number" min={0} value={c.employees || ''} disabled={readOnly} className="h-8 w-20 text-center" onChange={e => { const arr = [...diary.contractors]; arr[i] = { ...arr[i], employees: parseInt(e.target.value) || 0 }; update('contractors', arr); }} /></td>
+                    <td><Input value={c.contractObject} disabled={readOnly} className="h-8" onChange={e => { const arr = [...diary.contractors]; arr[i] = { ...arr[i], contractObject: e.target.value }; update('contractors', arr); }} /></td>
                     {!readOnly && (
-                      <td>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => {
-                          update('contractors', diary.contractors.filter((_, j) => j !== i));
-                        }}><Trash2 className="h-4 w-4" /></Button>
-                      </td>
+                      <td><Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => update('contractors', diary.contractors.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button></td>
                     )}
                   </tr>
                 ))}
@@ -354,32 +408,13 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
               <tbody>
                 {diary.equipmentJpl.map((eq, i) => (
                   <tr key={i}>
-                    <td>
-                      <Input type="number" min={0} value={eq.quantity || ''} disabled={readOnly} className="h-8 w-16 text-center"
-                        onChange={e => { const arr = [...diary.equipmentJpl]; arr[i] = { ...arr[i], quantity: parseInt(e.target.value) || 0 }; update('equipmentJpl', arr); }} />
-                    </td>
-                    <td>
-                      <Input value={eq.equipment} disabled={readOnly} className="h-8"
-                        onChange={e => { const arr = [...diary.equipmentJpl]; arr[i] = { ...arr[i], equipment: e.target.value }; update('equipmentJpl', arr); }} />
-                    </td>
-                    <td>
-                      <Input value={eq.identification} disabled={readOnly} className="h-8"
-                        onChange={e => { const arr = [...diary.equipmentJpl]; arr[i] = { ...arr[i], identification: e.target.value }; update('equipmentJpl', arr); }} />
-                    </td>
-                    <td className="text-center">
-                      <Checkbox checked={eq.operating} disabled={readOnly}
-                        onCheckedChange={v => { const arr = [...diary.equipmentJpl]; arr[i] = { ...arr[i], operating: !!v }; update('equipmentJpl', arr); }} />
-                    </td>
-                    <td className="text-center">
-                      <Checkbox checked={eq.stopped} disabled={readOnly}
-                        onCheckedChange={v => { const arr = [...diary.equipmentJpl]; arr[i] = { ...arr[i], stopped: !!v }; update('equipmentJpl', arr); }} />
-                    </td>
+                    <td><Input type="number" min={0} value={eq.quantity || ''} disabled={readOnly} className="h-8 w-16 text-center" onChange={e => { const arr = [...diary.equipmentJpl]; arr[i] = { ...arr[i], quantity: parseInt(e.target.value) || 0 }; update('equipmentJpl', arr); }} /></td>
+                    <td><Input value={eq.equipment} disabled={readOnly} className="h-8" onChange={e => { const arr = [...diary.equipmentJpl]; arr[i] = { ...arr[i], equipment: e.target.value }; update('equipmentJpl', arr); }} /></td>
+                    <td><Input value={eq.identification} disabled={readOnly} className="h-8" onChange={e => { const arr = [...diary.equipmentJpl]; arr[i] = { ...arr[i], identification: e.target.value }; update('equipmentJpl', arr); }} /></td>
+                    <td className="text-center"><Checkbox checked={eq.operating} disabled={readOnly} onCheckedChange={v => { const arr = [...diary.equipmentJpl]; arr[i] = { ...arr[i], operating: !!v }; update('equipmentJpl', arr); }} /></td>
+                    <td className="text-center"><Checkbox checked={eq.stopped} disabled={readOnly} onCheckedChange={v => { const arr = [...diary.equipmentJpl]; arr[i] = { ...arr[i], stopped: !!v }; update('equipmentJpl', arr); }} /></td>
                     {!readOnly && (
-                      <td>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => {
-                          update('equipmentJpl', diary.equipmentJpl.filter((_, j) => j !== i));
-                        }}><Trash2 className="h-4 w-4" /></Button>
-                      </td>
+                      <td><Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => update('equipmentJpl', diary.equipmentJpl.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button></td>
                     )}
                   </tr>
                 ))}
@@ -456,6 +491,7 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
                   <th>Descrição</th>
                   <th>Detalhamento</th>
                   <th>UN</th>
+                  <th className="text-right">P. Unit. (R$)</th>
                   <th>Km Ini</th>
                   <th>Km Fim</th>
                   <th>Exec. Dia</th>
@@ -472,6 +508,14 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
                     <td className="max-w-[200px] truncate">{s.detail}</td>
                     <td>{s.unit}</td>
                     <td>
+                      <Input type="number" step="0.01" value={s.unitPrice || ''} disabled={readOnly} className="h-7 w-24 text-xs text-right"
+                        onChange={e => {
+                          const arr = [...diary.executedServices];
+                          arr[i] = { ...arr[i], unitPrice: parseFloat(e.target.value) || 0 };
+                          update('executedServices', arr);
+                        }} />
+                    </td>
+                    <td>
                       <Input value={s.kmStart} disabled={readOnly} className="h-7 w-20 text-xs"
                         onChange={e => { const arr = [...diary.executedServices]; arr[i] = { ...arr[i], kmStart: e.target.value }; update('executedServices', arr); }} />
                     </td>
@@ -480,7 +524,7 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
                         onChange={e => { const arr = [...diary.executedServices]; arr[i] = { ...arr[i], kmEnd: e.target.value }; update('executedServices', arr); }} />
                     </td>
                     <td>
-                      <Input type="number" min={0} step="0.01" value={s.executedDay || ''} disabled={readOnly} className="h-7 w-20 text-xs text-center"
+                      <Input type="number" min={0} step="0.001" value={s.executedDay || ''} disabled={readOnly} className="h-7 w-20 text-xs text-center"
                         onChange={e => {
                           const arr = [...diary.executedServices];
                           const newVal = parseFloat(e.target.value) || 0;
@@ -489,7 +533,7 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
                           update('executedServices', arr);
                         }} />
                     </td>
-                    <td className="text-center font-medium">{s.executedMonth.toFixed(2)}</td>
+                    <td className="text-center font-medium">{s.executedMonth.toFixed(3)}</td>
                     <td>
                       <Input type="number" min={0} step="0.01" value={s.plannedMonth || ''} disabled={readOnly} className="h-7 w-20 text-xs text-center"
                         onChange={e => { const arr = [...diary.executedServices]; arr[i] = { ...arr[i], plannedMonth: parseFloat(e.target.value) || 0 }; update('executedServices', arr); }} />
@@ -557,14 +601,7 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
             <h2 className="section-title">Fotos</h2>
             {!readOnly && (
               <>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={handlePhotoUpload}
-                />
+                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} />
                 <Button variant="outline" className="gap-1.5 mb-4" onClick={() => fileInputRef.current?.click()}>
                   <Camera className="h-4 w-4" /> Adicionar Fotos
                 </Button>
@@ -576,42 +613,16 @@ const DiaryForm = ({ diary: initial, allDiaries, readOnly, onSave, onCancel, onE
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {diary.photos.map((photo, i) => (
                   <div key={photo.id} className="relative group">
-                    <img
-                      src={photo.dataUrl}
-                      alt={`Foto ${i + 1}`}
-                      className="w-full h-40 object-cover rounded-md border"
-                    />
+                    <img src={photo.dataUrl} alt={`Foto ${i + 1}`} className="w-full h-40 object-cover rounded-md border" />
                     <div className="mt-2 space-y-1">
-                      <Input
-                        value={photo.highway}
-                        disabled={readOnly}
-                        className="h-7 text-xs"
-                        placeholder="Rodovia"
-                        onChange={e => {
-                          const arr = [...diary.photos];
-                          arr[i] = { ...arr[i], highway: e.target.value };
-                          update('photos', arr);
-                        }}
-                      />
-                      <Input
-                        value={photo.km}
-                        disabled={readOnly}
-                        className="h-7 text-xs"
-                        placeholder="Km"
-                        onChange={e => {
-                          const arr = [...diary.photos];
-                          arr[i] = { ...arr[i], km: e.target.value };
-                          update('photos', arr);
-                        }}
-                      />
+                      <Input value={photo.highway} disabled={readOnly} className="h-7 text-xs" placeholder="Rodovia"
+                        onChange={e => { const arr = [...diary.photos]; arr[i] = { ...arr[i], highway: e.target.value }; update('photos', arr); }} />
+                      <Input value={photo.km} disabled={readOnly} className="h-7 text-xs" placeholder="Km"
+                        onChange={e => { const arr = [...diary.photos]; arr[i] = { ...arr[i], km: e.target.value }; update('photos', arr); }} />
                     </div>
                     {!readOnly && (
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => update('photos', diary.photos.filter((_, j) => j !== i))}
-                      >
+                      <Button variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => update('photos', diary.photos.filter((_, j) => j !== i))}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     )}
