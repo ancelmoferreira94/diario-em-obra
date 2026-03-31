@@ -1,58 +1,134 @@
 import { useState, useCallback } from 'react';
-import { DiaryEntry, createNewDiary } from '@/lib/types';
-import { loadDiaries, saveDiary } from '@/lib/storage';
+import { DiaryEntry, Project, createNewDiary, createDefaultProject } from '@/lib/types';
+import { loadDiaries, saveDiary, loadProjects, saveProject, deleteProject } from '@/lib/storage';
 import DiaryList from '@/components/DiaryList';
 import DiaryForm from '@/components/DiaryForm';
+import ProjectList from '@/components/ProjectList';
+import ProjectSettings from '@/components/ProjectSettings';
+import MonthlyPlanning from '@/components/MonthlyPlanning';
 
-type View = 'list' | 'form';
+type View = 'projects' | 'diaries' | 'form' | 'project-settings' | 'planning';
 
 const Index = () => {
-  const [view, setView] = useState<View>('list');
+  const [view, setView] = useState<View>('projects');
+  const [projects, setProjects] = useState<Project[]>(loadProjects);
   const [diaries, setDiaries] = useState<DiaryEntry[]>(loadDiaries);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [currentDiary, setCurrentDiary] = useState<DiaryEntry | null>(null);
   const [readOnly, setReadOnly] = useState(false);
 
-  const handleNew = useCallback(() => {
-    const newDiary = createNewDiary(diaries);
+  const handleSelectProject = useCallback((project: Project) => {
+    setCurrentProject(project);
+    setView('diaries');
+  }, []);
+
+  const handleNewProject = useCallback(() => {
+    const p = createDefaultProject();
+    const updated = saveProject(p);
+    setProjects(updated);
+    setCurrentProject(p);
+    setView('project-settings');
+  }, []);
+
+  const handleDeleteProject = useCallback((id: string) => {
+    const updated = deleteProject(id);
+    setProjects(updated);
+    setDiaries(prev => prev.filter(d => d.projectId !== id));
+  }, []);
+
+  const handleOpenSettings = useCallback((project: Project) => {
+    setCurrentProject(project);
+    setView('project-settings');
+  }, []);
+
+  const handleSaveProject = useCallback((project: Project) => {
+    const updated = saveProject(project);
+    setProjects(updated);
+    setCurrentProject(project);
+    setView('diaries');
+  }, []);
+
+  const handleNewDiary = useCallback(() => {
+    if (!currentProject) return;
+    const newDiary = createNewDiary(currentProject, diaries);
     setCurrentDiary(newDiary);
     setReadOnly(false);
     setView('form');
-  }, [diaries]);
+  }, [currentProject, diaries]);
 
-  const handleOpen = useCallback((diary: DiaryEntry) => {
+  const handleOpenDiary = useCallback((diary: DiaryEntry) => {
     setCurrentDiary(diary);
     setReadOnly(true);
     setView('form');
   }, []);
 
-  const handleSave = useCallback((diary: DiaryEntry) => {
+  const handleSaveDiary = useCallback((diary: DiaryEntry) => {
     const updated = saveDiary(diary);
     setDiaries(updated);
-    setView('list');
+    setView('diaries');
   }, []);
 
   const handleCancel = useCallback(() => {
-    setView('list');
+    if (view === 'form') setView('diaries');
+    else if (view === 'project-settings') setView(currentProject ? 'diaries' : 'projects');
+    else if (view === 'planning') setView('diaries');
+    else setView('projects');
     setCurrentDiary(null);
-  }, []);
+  }, [view, currentProject]);
 
-  const handleEdit = useCallback(() => {
-    setReadOnly(false);
-  }, []);
+  const handleEdit = useCallback(() => setReadOnly(false), []);
+
+  const handleOpenPlanning = useCallback(() => setView('planning'), []);
+
+  const projectDiaries = currentProject
+    ? diaries.filter(d => d.projectId === currentProject.id)
+    : [];
 
   return (
     <div className="min-h-screen bg-background">
-      {view === 'list' && (
-        <DiaryList diaries={diaries} onNew={handleNew} onOpen={handleOpen} />
+      {view === 'projects' && (
+        <ProjectList
+          projects={projects}
+          onSelect={handleSelectProject}
+          onNew={handleNewProject}
+          onDelete={handleDeleteProject}
+          onSettings={handleOpenSettings}
+        />
       )}
-      {view === 'form' && currentDiary && (
+      {view === 'diaries' && currentProject && (
+        <DiaryList
+          project={currentProject}
+          diaries={projectDiaries}
+          onNew={handleNewDiary}
+          onOpen={handleOpenDiary}
+          onBack={() => setView('projects')}
+          onSettings={() => { setView('project-settings'); }}
+          onPlanning={handleOpenPlanning}
+        />
+      )}
+      {view === 'form' && currentDiary && currentProject && (
         <DiaryForm
+          project={currentProject}
           diary={currentDiary}
           allDiaries={diaries}
           readOnly={readOnly}
-          onSave={handleSave}
+          onSave={handleSaveDiary}
           onCancel={handleCancel}
           onEdit={handleEdit}
+        />
+      )}
+      {view === 'project-settings' && currentProject && (
+        <ProjectSettings
+          project={currentProject}
+          onSave={handleSaveProject}
+          onCancel={handleCancel}
+        />
+      )}
+      {view === 'planning' && currentProject && (
+        <MonthlyPlanning
+          project={currentProject}
+          diaries={projectDiaries}
+          onBack={handleCancel}
         />
       )}
     </div>
