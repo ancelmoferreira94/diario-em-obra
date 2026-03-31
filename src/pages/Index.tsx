@@ -1,16 +1,62 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useCallback } from 'react';
+import { DiaryEntry, createNewDiary } from '@/lib/types';
+import { loadDiaries, saveDiary } from '@/lib/storage';
+import DiaryList from '@/components/DiaryList';
+import DiaryForm from '@/components/DiaryForm';
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+type View = 'list' | 'form';
+
+const Index = () => {
+  const [view, setView] = useState<View>('list');
+  const [diaries, setDiaries] = useState<DiaryEntry[]>(loadDiaries);
+  const [currentDiary, setCurrentDiary] = useState<DiaryEntry | null>(null);
+  const [readOnly, setReadOnly] = useState(false);
+
+  const handleNew = useCallback(() => {
+    const newDiary = createNewDiary(diaries);
+    setCurrentDiary(newDiary);
+    setReadOnly(false);
+    setView('form');
+  }, [diaries]);
+
+  const handleOpen = useCallback((diary: DiaryEntry) => {
+    setCurrentDiary(diary);
+    setReadOnly(true);
+    setView('form');
+  }, []);
+
+  const handleSave = useCallback((diary: DiaryEntry) => {
+    const updated = saveDiary(diary);
+    setDiaries(updated);
+    setView('list');
+  }, []);
+
+  const handleCancel = useCallback(() => {
+    setView('list');
+    setCurrentDiary(null);
+  }, []);
+
+  const handleEdit = useCallback(() => {
+    setReadOnly(false);
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-screen bg-background">
+      {view === 'list' && (
+        <DiaryList diaries={diaries} onNew={handleNew} onOpen={handleOpen} />
+      )}
+      {view === 'form' && currentDiary && (
+        <DiaryForm
+          diary={currentDiary}
+          allDiaries={diaries}
+          readOnly={readOnly}
+          onSave={handleSave}
+          onCancel={handleCancel}
+          onEdit={handleEdit}
+        />
+      )}
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
