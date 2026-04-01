@@ -14,7 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      diaries: {
+        Row: {
+          data: Json | null
+          id: string
+          project_id: string | null
+        }
+        Insert: {
+          data?: Json | null
+          id: string
+          project_id?: string | null
+        }
+        Update: {
+          data?: Json | null
+          id?: string
+          project_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diaries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          data: Json | null
+          id: string
+          name: string
+        }
+        Insert: {
+          data?: Json | null
+          id: string
+          name: string
+        }
+        Update: {
+          data?: Json | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
