@@ -5,9 +5,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Save, X, Pencil, Printer, Plus, Trash2, Camera } from 'lucide-react';
+import { Save, X, Pencil, Eye, Plus, Trash2, Camera } from 'lucide-react';
 import { toast } from 'sonner';
-import DiaryPrintLayout from '@/components/DiaryPrintLayout';
+import DecimalInput from '@/components/DecimalInput';
+import PrintPreviewModal from '@/components/PrintPreviewModal';
 
 interface DiaryFormProps {
   project: Project;
@@ -22,6 +23,12 @@ interface DiaryFormProps {
 function formatDateBR(dateStr: string) {
   const [y, m, d] = dateStr.split('-');
   return `${d}/${m}/${y}`;
+}
+
+function getServiceDate(diaryDate: string): string {
+  const d = new Date(diaryDate + 'T12:00:00');
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split('T')[0];
 }
 
 function formatCurrency(value: number): string {
@@ -39,7 +46,7 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
     }));
     return d;
   });
-  const [showPrint, setShowPrint] = useState(false);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -50,14 +57,6 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
   const handleSave = () => {
     onSave(diary);
     toast.success('Diário salvo com sucesso!');
-  };
-
-  const handlePrint = () => {
-    setShowPrint(true);
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => setShowPrint(false), 500);
-    }, 100);
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,7 +80,6 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
   const totalStaff = diary.staffJpl.reduce((s, r) => s + r.quantity, 0);
   const totalContractorStaff = diary.contractors.reduce((s, c) => s + c.employees, 0);
 
-  // Financial control
   const financialGroups = ['Conservação', 'Pavimentação', 'Serviços Auxiliares', 'Melhoramentos'] as const;
   const financialData = financialGroups.map(group => {
     const services = diary.executedServices.filter(s => s.description === group);
@@ -101,10 +99,7 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
 
   const dateObj = new Date(diary.date + 'T12:00:00');
   const weekday = WEEKDAYS[dateObj.getDay()];
-
-  if (showPrint) {
-    return <DiaryPrintLayout diary={diary} project={project} financialData={financialData} financialTotal={financialTotal} />;
-  }
+  const serviceDate = getServiceDate(diary.date);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 animate-fade-in">
@@ -116,6 +111,9 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
               Diário nº {String(diary.number).padStart(2, '0')}
             </h1>
             <p className="text-primary-foreground/70 text-sm">{project.name}</p>
+            <p className="text-primary-foreground/50 text-xs mt-0.5">
+              Produção referente a: {formatDateBR(serviceDate)} (D-1)
+            </p>
           </div>
           <div className="flex gap-2 flex-wrap">
             {readOnly ? (
@@ -123,8 +121,8 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
                 <Button variant="secondary" size="sm" onClick={onEdit} className="gap-1.5">
                   <Pencil className="h-4 w-4" /> Editar
                 </Button>
-                <Button variant="secondary" size="sm" onClick={handlePrint} className="gap-1.5">
-                  <Printer className="h-4 w-4" /> Imprimir
+                <Button variant="secondary" size="sm" onClick={() => setShowPrintPreview(true)} className="gap-1.5">
+                  <Eye className="h-4 w-4" /> Visualizar Impressão
                 </Button>
               </>
             ) : (
@@ -169,7 +167,7 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
               <Field label="Contrato" value={project.contract} />
               <Field label="Diário nº" value={String(diary.number).padStart(2, '0')} />
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Data</label>
+                <label className="text-sm font-medium text-muted-foreground">Data do Diário</label>
                 <Input
                   type="date"
                   value={diary.date}
@@ -179,6 +177,7 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
                 />
               </div>
               <Field label="Dia da Semana" value={weekday} />
+              <Field label="Data dos Serviços (D-1)" value={formatDateBR(serviceDate)} />
               <div className="md:col-span-2">
                 <Field label="Rodovia" value={project.highway} />
               </div>
@@ -215,7 +214,6 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
               <h2 className="section-title mb-0 border-0 pb-0">Previsão de Serviços</h2>
               {!readOnly && (
                 <Button variant="outline" size="sm" className="gap-1.5" onClick={() => {
-                  // Add a service from catalog not yet in forecast
                   const usedIds = diary.serviceForecast.map(s => s.serviceId);
                   const available = project.serviceCatalog.filter(s => !usedIds.includes(s.id));
                   if (available.length === 0) {
@@ -482,7 +480,10 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
         {/* SECTION 7 - Executed Services */}
         <TabsContent value="executed">
           <div className="bg-card rounded-lg p-6 border overflow-x-auto">
-            <h2 className="section-title">Serviços Executados</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="section-title mb-0 border-0 pb-0">Serviços Executados</h2>
+              <p className="text-sm text-muted-foreground">Produção ref.: {formatDateBR(serviceDate)} (D-1)</p>
+            </div>
             <table className="data-table text-xs">
               <thead>
                 <tr>
@@ -508,10 +509,10 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
                     <td className="max-w-[200px] truncate">{s.detail}</td>
                     <td>{s.unit}</td>
                     <td>
-                      <Input type="number" step="0.01" value={s.unitPrice || ''} disabled={readOnly} className="h-7 w-24 text-xs text-right"
-                        onChange={e => {
+                      <DecimalInput value={s.unitPrice} disabled={readOnly} className="h-7 w-24 text-xs text-right"
+                        onChange={val => {
                           const arr = [...diary.executedServices];
-                          arr[i] = { ...arr[i], unitPrice: parseFloat(e.target.value) || 0 };
+                          arr[i] = { ...arr[i], unitPrice: val };
                           update('executedServices', arr);
                         }} />
                     </td>
@@ -524,19 +525,18 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
                         onChange={e => { const arr = [...diary.executedServices]; arr[i] = { ...arr[i], kmEnd: e.target.value }; update('executedServices', arr); }} />
                     </td>
                     <td>
-                      <Input type="number" min={0} step="0.001" value={s.executedDay || ''} disabled={readOnly} className="h-7 w-20 text-xs text-center"
-                        onChange={e => {
+                      <DecimalInput value={s.executedDay} disabled={readOnly} className="h-7 w-20 text-xs text-center" min={0}
+                        onChange={val => {
                           const arr = [...diary.executedServices];
-                          const newVal = parseFloat(e.target.value) || 0;
-                          const accum = getMonthlyAccumulated(allDiaries, { ...diary, executedServices: arr.map((x, j) => j === i ? { ...x, executedDay: newVal } : x) }, i);
-                          arr[i] = { ...arr[i], executedDay: newVal, executedMonth: accum };
+                          const accum = getMonthlyAccumulated(allDiaries, { ...diary, executedServices: arr.map((x, j) => j === i ? { ...x, executedDay: val } : x) }, i);
+                          arr[i] = { ...arr[i], executedDay: val, executedMonth: accum };
                           update('executedServices', arr);
                         }} />
                     </td>
-                    <td className="text-center font-medium">{s.executedMonth.toFixed(3)}</td>
+                    <td className="text-center font-medium">{s.executedMonth.toFixed(3).replace('.', ',')}</td>
                     <td>
-                      <Input type="number" min={0} step="0.01" value={s.plannedMonth || ''} disabled={readOnly} className="h-7 w-20 text-xs text-center"
-                        onChange={e => { const arr = [...diary.executedServices]; arr[i] = { ...arr[i], plannedMonth: parseFloat(e.target.value) || 0 }; update('executedServices', arr); }} />
+                      <DecimalInput value={s.plannedMonth} disabled={readOnly} className="h-7 w-20 text-xs text-center" min={0}
+                        onChange={val => { const arr = [...diary.executedServices]; arr[i] = { ...arr[i], plannedMonth: val }; update('executedServices', arr); }} />
                     </td>
                   </tr>
                 ))}
@@ -633,6 +633,16 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Print Preview Modal */}
+      <PrintPreviewModal
+        open={showPrintPreview}
+        onOpenChange={setShowPrintPreview}
+        diary={diary}
+        project={project}
+        financialData={financialData}
+        financialTotal={financialTotal}
+      />
     </div>
   );
 };
