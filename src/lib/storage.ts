@@ -1,27 +1,25 @@
 import { DiaryEntry, Project, MonthlyPlanningEntry } from './types';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 // Projects
 export async function loadProjects(): Promise<Project[]> {
   const { data, error } = await supabase.from('projects').select('*');
   if (error) { console.error('loadProjects error:', error); return []; }
-  return (data || []).map(row => ({ ...row.data as unknown as Project, id: row.id, name: row.name }));
+  return (data || []).map(row => row.data as unknown as Project);
 }
 
 export async function saveProject(project: Project): Promise<Project[]> {
-  const { id, name, ...rest } = project;
   const { error } = await supabase.from('projects').upsert({
-    id,
-    name,
-    data: { ...project } as unknown as Record<string, unknown>,
+    id: project.id,
+    name: project.name,
+    data: project as unknown as Json,
   });
   if (error) console.error('saveProject error:', error);
   return loadProjects();
 }
 
 export async function deleteProject(id: string): Promise<Project[]> {
-  // Diaries cascade on delete
-  await supabase.from('planning').delete().eq('project_id', id).then(() => {});
   const { error } = await supabase.from('projects').delete().eq('id', id);
   if (error) console.error('deleteProject error:', error);
   return loadProjects();
@@ -40,7 +38,7 @@ export async function saveDiary(diary: DiaryEntry): Promise<DiaryEntry[]> {
   const { error } = await supabase.from('diaries').upsert({
     id: diary.id,
     project_id: diary.projectId,
-    data: { ...diary } as unknown as Record<string, unknown>,
+    data: diary as unknown as Json,
   });
   if (error) console.error('saveDiary error:', error);
   return loadDiaries(diary.projectId);
@@ -52,7 +50,7 @@ export async function deleteDiary(id: string, projectId: string): Promise<DiaryE
   return loadDiaries(projectId);
 }
 
-// Monthly Planning - keep in localStorage for now (no table yet)
+// Monthly Planning - keep in localStorage for now
 const PLANNING_KEY = 'jpl-gomes-planning';
 
 export function loadPlanning(): MonthlyPlanningEntry[] {
