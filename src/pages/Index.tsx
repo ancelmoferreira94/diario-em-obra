@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { DiaryEntry, Project, createNewDiary, createDefaultProject } from '@/lib/types';
 import { loadDiaries, saveDiary, loadProjects, saveProject, deleteProject } from '@/lib/storage';
 import DiaryList from '@/components/DiaryList';
@@ -11,27 +11,40 @@ type View = 'projects' | 'diaries' | 'form' | 'project-settings' | 'planning';
 
 const Index = () => {
   const [view, setView] = useState<View>('projects');
-  const [projects, setProjects] = useState<Project[]>(loadProjects);
-  const [diaries, setDiaries] = useState<DiaryEntry[]>(loadDiaries);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [diaries, setDiaries] = useState<DiaryEntry[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [currentDiary, setCurrentDiary] = useState<DiaryEntry | null>(null);
   const [readOnly, setReadOnly] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Load projects on mount
+  useEffect(() => {
+    loadProjects().then(p => { setProjects(p); setLoading(false); });
+  }, []);
+
+  // Load diaries when project changes
+  useEffect(() => {
+    if (currentProject) {
+      loadDiaries(currentProject.id).then(setDiaries);
+    }
+  }, [currentProject?.id]);
 
   const handleSelectProject = useCallback((project: Project) => {
     setCurrentProject(project);
     setView('diaries');
   }, []);
 
-  const handleNewProject = useCallback(() => {
+  const handleNewProject = useCallback(async () => {
     const p = createDefaultProject();
-    const updated = saveProject(p);
+    const updated = await saveProject(p);
     setProjects(updated);
     setCurrentProject(p);
     setView('project-settings');
   }, []);
 
-  const handleDeleteProject = useCallback((id: string) => {
-    const updated = deleteProject(id);
+  const handleDeleteProject = useCallback(async (id: string) => {
+    const updated = await deleteProject(id);
     setProjects(updated);
     setDiaries(prev => prev.filter(d => d.projectId !== id));
   }, []);
@@ -41,8 +54,8 @@ const Index = () => {
     setView('project-settings');
   }, []);
 
-  const handleSaveProject = useCallback((project: Project) => {
-    const updated = saveProject(project);
+  const handleSaveProject = useCallback(async (project: Project) => {
+    const updated = await saveProject(project);
     setProjects(updated);
     setCurrentProject(project);
     setView('diaries');
@@ -62,8 +75,8 @@ const Index = () => {
     setView('form');
   }, []);
 
-  const handleSaveDiary = useCallback((diary: DiaryEntry) => {
-    const updated = saveDiary(diary);
+  const handleSaveDiary = useCallback(async (diary: DiaryEntry) => {
+    const updated = await saveDiary(diary);
     setDiaries(updated);
     setView('diaries');
   }, []);
@@ -83,6 +96,14 @@ const Index = () => {
   const projectDiaries = currentProject
     ? diaries.filter(d => d.projectId === currentProject.id)
     : [];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

@@ -1,7 +1,9 @@
 import { DiaryEntry, Project } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, FileText, Users, DollarSign, ArrowLeft, Settings, Calendar } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Plus, FileText, Users, DollarSign, ArrowLeft, Settings, Calendar, ChevronDown } from 'lucide-react';
+import { useState } from 'react';
 
 interface DiaryListProps {
   project: Project;
@@ -12,6 +14,8 @@ interface DiaryListProps {
   onSettings: () => void;
   onPlanning: () => void;
 }
+
+const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
 function formatDate(dateStr: string) {
   const [y, m, d] = dateStr.split('-');
@@ -31,8 +35,43 @@ function formatCurrency(value: number): string {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+interface MonthGroup {
+  key: string;
+  label: string;
+  diaries: DiaryEntry[];
+}
+
+function groupByMonth(diaries: DiaryEntry[]): MonthGroup[] {
+  const groups: Record<string, DiaryEntry[]> = {};
+  diaries.forEach(d => {
+    const date = new Date(d.date + 'T12:00:00');
+    const key = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(d);
+  });
+  return Object.entries(groups)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([key, diaries]) => {
+      const [year, month] = key.split('-').map(Number);
+      return {
+        key,
+        label: `${MONTHS[month]} ${year}`,
+        diaries: diaries.sort((a, b) => b.number - a.number),
+      };
+    });
+}
+
 const DiaryList = ({ project, diaries, onNew, onOpen, onBack, onSettings, onPlanning }: DiaryListProps) => {
-  const sorted = [...diaries].sort((a, b) => b.number - a.number);
+  const monthGroups = groupByMonth(diaries);
+  const currentKey = (() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth()).padStart(2, '0')}`;
+  })();
+  const [openMonths, setOpenMonths] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    monthGroups.forEach(g => { init[g.key] = g.key === currentKey; });
+    return init;
+  });
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 animate-fade-in">
@@ -60,47 +99,75 @@ const DiaryList = ({ project, diaries, onNew, onOpen, onBack, onSettings, onPlan
         </Button>
       </div>
 
-      {sorted.length === 0 ? (
+      {diaries.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">
           <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
           <p className="text-lg">Nenhum diário registrado</p>
           <p className="text-sm mt-1">Clique em "Novo Diário" para começar</p>
         </div>
       ) : (
-        <div className="grid gap-3">
-          {sorted.map(diary => {
-            const totalStaff = getTotalStaff(diary);
-            const totalFinancial = getTotalFinancial(diary);
+        <div className="space-y-4">
+          {monthGroups.map(group => {
+            const isCurrentMonth = group.key === currentKey;
+            const isOpen = openMonths[group.key] ?? isCurrentMonth;
             return (
-              <Card
-                key={diary.id}
-                className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-primary"
-                onClick={() => onOpen(diary)}
+              <Collapsible
+                key={group.key}
+                open={isOpen}
+                onOpenChange={v => setOpenMonths(prev => ({ ...prev, [group.key]: v }))}
               >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-primary/10 text-primary font-bold rounded-md w-12 h-12 flex items-center justify-center text-lg">
-                        {String(diary.number).padStart(2, '0')}
-                      </div>
-                      <div>
-                        <p className="font-medium">Diário nº {String(diary.number).padStart(2, '0')}</p>
-                        <p className="text-sm text-muted-foreground">{formatDate(diary.date)}</p>
-                      </div>
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
+                      <h2 className="font-semibold text-lg">{group.label}</h2>
+                      <span className="text-sm text-muted-foreground">({group.diaries.length} diários)</span>
                     </div>
-                    <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1.5">
-                        <Users className="h-4 w-4" />
-                        {totalStaff} func.
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <DollarSign className="h-4 w-4" />
-                        {formatCurrency(totalFinancial)}
-                      </span>
-                    </div>
+                    {!isCurrentMonth && (
+                      <span className="text-xs text-muted-foreground bg-muted-foreground/10 px-2 py-0.5 rounded">Fechado</span>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="grid gap-3 mt-2">
+                    {group.diaries.map(diary => {
+                      const totalStaff = getTotalStaff(diary);
+                      const totalFinancial = getTotalFinancial(diary);
+                      return (
+                        <Card
+                          key={diary.id}
+                          className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-primary"
+                          onClick={() => onOpen(diary)}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                              <div className="flex items-center gap-4">
+                                <div className="bg-primary/10 text-primary font-bold rounded-md w-12 h-12 flex items-center justify-center text-lg">
+                                  {String(diary.number).padStart(2, '0')}
+                                </div>
+                                <div>
+                                  <p className="font-medium">Diário nº {String(diary.number).padStart(2, '0')}</p>
+                                  <p className="text-sm text-muted-foreground">{formatDate(diary.date)}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1.5">
+                                  <Users className="h-4 w-4" />
+                                  {totalStaff} func.
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                  <DollarSign className="h-4 w-4" />
+                                  {formatCurrency(totalFinancial)}
+                                </span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             );
           })}
         </div>
