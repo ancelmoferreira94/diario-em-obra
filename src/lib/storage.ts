@@ -1,69 +1,58 @@
 import { DiaryEntry, Project, MonthlyPlanningEntry } from './types';
-
-const PROJECTS_KEY = 'jpl-gomes-projects';
-const DIARIES_KEY = 'jpl-gomes-diarios';
-const PLANNING_KEY = 'jpl-gomes-planning';
+import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 // Projects
-export function loadProjects(): Project[] {
-  try {
-    const data = localStorage.getItem(PROJECTS_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch { return []; }
+export async function loadProjects(): Promise<Project[]> {
+  const { data, error } = await supabase.from('projects').select('*');
+  if (error) { console.error('loadProjects error:', error); return []; }
+  return (data || []).map(row => row.data as unknown as Project);
 }
 
-export function saveProjects(projects: Project[]): void {
-  localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
+export async function saveProject(project: Project): Promise<Project[]> {
+  const { error } = await supabase.from('projects').upsert({
+    id: project.id,
+    name: project.name,
+    data: project as unknown as Json,
+  });
+  if (error) console.error('saveProject error:', error);
+  return loadProjects();
 }
 
-export function saveProject(project: Project): Project[] {
-  const projects = loadProjects();
-  const index = projects.findIndex(p => p.id === project.id);
-  if (index >= 0) projects[index] = project;
-  else projects.push(project);
-  saveProjects(projects);
-  return projects;
-}
-
-export function deleteProject(id: string): Project[] {
-  const projects = loadProjects().filter(p => p.id !== id);
-  saveProjects(projects);
-  // Also delete associated diaries and planning
-  const diaries = loadDiaries().filter(d => d.projectId !== id);
-  saveDiaries(diaries);
-  const planning = loadPlanning().filter(p => p.projectId !== id);
-  savePlanning(planning);
-  return projects;
+export async function deleteProject(id: string): Promise<Project[]> {
+  const { error } = await supabase.from('projects').delete().eq('id', id);
+  if (error) console.error('deleteProject error:', error);
+  return loadProjects();
 }
 
 // Diaries
-export function loadDiaries(): DiaryEntry[] {
-  try {
-    const data = localStorage.getItem(DIARIES_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch { return []; }
+export async function loadDiaries(projectId?: string): Promise<DiaryEntry[]> {
+  let query = supabase.from('diaries').select('*');
+  if (projectId) query = query.eq('project_id', projectId);
+  const { data, error } = await query;
+  if (error) { console.error('loadDiaries error:', error); return []; }
+  return (data || []).map(row => row.data as unknown as DiaryEntry);
 }
 
-export function saveDiaries(diaries: DiaryEntry[]): void {
-  localStorage.setItem(DIARIES_KEY, JSON.stringify(diaries));
+export async function saveDiary(diary: DiaryEntry): Promise<DiaryEntry[]> {
+  const { error } = await supabase.from('diaries').upsert({
+    id: diary.id,
+    project_id: diary.projectId,
+    data: diary as unknown as Json,
+  });
+  if (error) console.error('saveDiary error:', error);
+  return loadDiaries(diary.projectId);
 }
 
-export function saveDiary(diary: DiaryEntry): DiaryEntry[] {
-  const diaries = loadDiaries();
-  const index = diaries.findIndex(d => d.id === diary.id);
-  if (index >= 0) diaries[index] = diary;
-  else diaries.push(diary);
-  saveDiaries(diaries);
-  return diaries;
+export async function deleteDiary(id: string, projectId: string): Promise<DiaryEntry[]> {
+  const { error } = await supabase.from('diaries').delete().eq('id', id);
+  if (error) console.error('deleteDiary error:', error);
+  return loadDiaries(projectId);
 }
 
-export function deleteDiary(id: string): DiaryEntry[] {
-  const diaries = loadDiaries().filter(d => d.id !== id);
-  saveDiaries(diaries);
-  return diaries;
-}
+// Monthly Planning - keep in localStorage for now
+const PLANNING_KEY = 'jpl-gomes-planning';
 
-// Monthly Planning
 export function loadPlanning(): MonthlyPlanningEntry[] {
   try {
     const data = localStorage.getItem(PLANNING_KEY);
