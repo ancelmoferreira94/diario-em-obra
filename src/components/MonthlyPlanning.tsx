@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Project, DiaryEntry, MonthlyPlanningEntry } from '@/lib/types';
+import { Project, DiaryEntry, MonthlyPlanningEntry, getServiceMonthYear } from '@/lib/types';
 import { loadPlanning, savePlanningEntry } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
