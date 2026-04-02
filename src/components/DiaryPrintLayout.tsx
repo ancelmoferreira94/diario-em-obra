@@ -231,10 +231,12 @@ const DiaryPrintLayout = ({ diary, project, financialData, financialTotal, visib
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       {/* Staff */}
       {show('staff') && activeStaffTeams.length > 0 && (
+        <div className="print-section">
         <table style={{ marginBottom: 4 }}>
           <thead>
             <tr><th colSpan={3} className="section-header">QUADRO DE PESSOAL - JPL GOMES</th></tr>
