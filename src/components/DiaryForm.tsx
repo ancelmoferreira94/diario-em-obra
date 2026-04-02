@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Save, X, Pencil, Eye, Plus, Trash2, Camera } from 'lucide-react';
+import { Save, X, Pencil, Eye, Plus, Trash2, Camera, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import DecimalInput from '@/components/DecimalInput';
 import PrintPreviewModal from '@/components/PrintPreviewModal';
