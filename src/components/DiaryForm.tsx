@@ -50,7 +50,7 @@ function formatCurrency(value: number): string {
 
 const WEEKDAYS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
 
-const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCancel, onEdit, onBack }: DiaryFormProps) => {
+const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCancel, onEdit, onBack, onDelete }: DiaryFormProps) => {
   const [diary, setDiary] = useState<DiaryEntry>(() => {
     const d = { ...initial };
     d.executedServices = d.executedServices.map((s, i) => ({
