@@ -63,7 +63,8 @@ const Index = () => {
 
   const handleNewDiary = useCallback(() => {
     if (!currentProject) return;
-    const newDiary = createNewDiary(currentProject, diaries);
+    const planningEntries = loadPlanning();
+    const newDiary = createNewDiary(currentProject, diaries, planningEntries);
     setCurrentDiary(newDiary);
     setReadOnly(false);
     setView('form');
