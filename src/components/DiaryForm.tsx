@@ -9,6 +9,17 @@ import { Save, X, Pencil, Eye, Plus, Trash2, Camera, ArrowLeft } from 'lucide-re
 import { toast } from 'sonner';
 import DecimalInput from '@/components/DecimalInput';
 import PrintPreviewModal from '@/components/PrintPreviewModal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface DiaryFormProps {
   project: Project;
@@ -19,6 +30,7 @@ interface DiaryFormProps {
   onCancel: () => void;
   onEdit: () => void;
   onBack: () => void;
+  onDelete?: (id: string) => void;
 }
 
 function formatDateBR(dateStr: string) {
@@ -38,7 +50,7 @@ function formatCurrency(value: number): string {
 
 const WEEKDAYS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
 
-const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCancel, onEdit, onBack }: DiaryFormProps) => {
+const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCancel, onEdit, onBack, onDelete }: DiaryFormProps) => {
   const [diary, setDiary] = useState<DiaryEntry>(() => {
     const d = { ...initial };
     d.executedServices = d.executedServices.map((s, i) => ({
@@ -138,9 +150,34 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
             )}
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={onBack} className="mt-2 text-primary-foreground/70 gap-1.5 -ml-2">
-          <ArrowLeft className="h-4 w-4" /> Voltar aos Diários
-        </Button>
+        <div className="flex items-center justify-between mt-2">
+          <Button variant="ghost" size="sm" onClick={onBack} className="text-primary-foreground/70 gap-1.5 -ml-2">
+            <ArrowLeft className="h-4 w-4" /> Voltar aos Diários
+          </Button>
+          {onDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-destructive-foreground/80 gap-1.5 hover:bg-destructive/20">
+                  <Trash2 className="h-4 w-4" /> Excluir Diário
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir Diário</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tem certeza que deseja excluir este diário? Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDelete(diary.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </div>
 
       <Tabs defaultValue="header" className="w-full">

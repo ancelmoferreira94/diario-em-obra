@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
+import { toast } from 'sonner';
 import { DiaryEntry, Project, createNewDiary, createDefaultProject, MonthlyPlanningEntry } from '@/lib/types';
-import { loadDiaries, saveDiary, loadProjects, saveProject, deleteProject, loadPlanning } from '@/lib/storage';
+import { loadDiaries, saveDiary, deleteDiary, loadProjects, saveProject, deleteProject, loadPlanning } from '@/lib/storage';
 import DiaryList from '@/components/DiaryList';
 import DiaryForm from '@/components/DiaryForm';
 import ProjectList from '@/components/ProjectList';
@@ -82,6 +83,15 @@ const Index = () => {
     setView('diaries');
   }, []);
 
+  const handleDeleteDiary = useCallback(async (id: string) => {
+    if (!currentProject) return;
+    const updated = await deleteDiary(id, currentProject.id);
+    setDiaries(updated);
+    setCurrentDiary(null);
+    setView('diaries');
+    toast.success('Diário excluído com sucesso!');
+  }, [currentProject]);
+
   const handleCancel = useCallback(() => {
     if (view === 'form') setView('diaries');
     else if (view === 'project-settings') setView(currentProject ? 'diaries' : 'projects');
@@ -138,6 +148,7 @@ const Index = () => {
           onCancel={handleCancel}
           onEdit={handleEdit}
           onBack={() => { setView('diaries'); setCurrentDiary(null); }}
+          onDelete={handleDeleteDiary}
         />
       )}
       {view === 'project-settings' && currentProject && (
