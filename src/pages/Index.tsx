@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { DiaryEntry, Project, createNewDiary, createDefaultProject, MonthlyPlanningEntry } from '@/lib/types';
-import { loadDiaries, saveDiary, loadProjects, saveProject, deleteProject, loadPlanning } from '@/lib/storage';
+import { loadDiaries, saveDiary, deleteDiary, loadProjects, saveProject, deleteProject, loadPlanning } from '@/lib/storage';
 import DiaryList from '@/components/DiaryList';
 import DiaryForm from '@/components/DiaryForm';
 import ProjectList from '@/components/ProjectList';
