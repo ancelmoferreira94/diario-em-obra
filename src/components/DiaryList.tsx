@@ -125,7 +125,7 @@ const DiaryList = ({ project, diaries, onNew, onOpen, onBack, onSettings, onPlan
                       <span className="text-sm text-muted-foreground">({group.diaries.length} diários)</span>
                     </div>
                     {!isCurrentMonth && (
-                      <span className="text-xs text-muted-foreground bg-muted-foreground/10 px-2 py-0.5 rounded">Fechado</span>
+                      <span className="text-xs text-muted-foreground bg-muted-foreground/10 px-2 py-0.5 rounded">Mês anterior</span>
                     )}
                   </div>
                 </CollapsibleTrigger>

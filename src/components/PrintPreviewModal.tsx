@@ -51,7 +51,7 @@ const PrintPreviewModal = ({ open, onOpenChange, diary, project, financialData, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto print:max-w-none print:max-h-none print:overflow-visible print:p-0 print:m-0 print:border-none print:shadow-none">
+      <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto print:fixed print:inset-0 print:z-[9999] print:max-w-none print:max-h-none print:overflow-visible print:p-0 print:m-0 print:border-none print:shadow-none print:bg-white print:translate-x-0 print:translate-y-0 print:left-0 print:top-0">
         <DialogHeader className="no-print">
           <DialogTitle>Visualizar Impressão</DialogTitle>
         </DialogHeader>
