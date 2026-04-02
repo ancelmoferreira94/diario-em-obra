@@ -74,6 +74,7 @@ const DiaryPrintLayout = ({ diary, project, financialData, financialTotal, visib
         .print-layout table {
           width: 100%;
           border-collapse: collapse;
+          page-break-inside: avoid;
         }
         .print-layout th, .print-layout td {
           border: 1px solid #333;
