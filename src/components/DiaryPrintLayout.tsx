@@ -198,7 +198,6 @@ const DiaryPrintLayout = ({ diary, project, financialData, financialTotal, visib
 
       {/* Service Forecast */}
       {show('forecast') && activeForecasts.length > 0 && (
-        <div className="print-section">
         <table style={{ marginBottom: 4 }}>
           <thead>
             <tr>
