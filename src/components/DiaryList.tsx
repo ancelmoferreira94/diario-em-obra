@@ -1,4 +1,4 @@
-import { DiaryEntry, Project } from '@/lib/types';
+import { DiaryEntry, Project, getServiceMonthYear } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
