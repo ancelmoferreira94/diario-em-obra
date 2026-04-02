@@ -159,10 +159,21 @@ export function createDefaultProject(): Project {
   };
 }
 
-export function createNewDiary(project: Project, diaries: DiaryEntry[]): DiaryEntry {
+export function createNewDiary(project: Project, diaries: DiaryEntry[], planningEntries?: MonthlyPlanningEntry[]): DiaryEntry {
   const projectDiaries = diaries.filter(d => d.projectId === project.id);
   const nextNumber = projectDiaries.length > 0 ? Math.max(...projectDiaries.map(d => d.number)) + 1 : 1;
   const today = new Date().toISOString().split('T')[0];
+
+  // The service date (D-1) determines which month's planning to use
+  const serviceDate = getServiceDateFromDiary(today);
+  const sd = new Date(serviceDate + 'T12:00:00');
+  const serviceMonth = sd.getMonth();
+  const serviceYear = sd.getFullYear();
+
+  // Find planning entry for the service month
+  const planning = planningEntries?.find(
+    p => p.projectId === project.id && p.month === serviceMonth && p.year === serviceYear
+  );
 
   return {
     id: crypto.randomUUID(),
@@ -185,20 +196,23 @@ export function createNewDiary(project: Project, diaries: DiaryEntry[]): DiaryEn
     contractors: [...project.defaultContractors],
     equipmentJpl: project.defaultEquipment.map(e => ({ ...e, operating: false, stopped: false })),
     leasedEquipment: [],
-    executedServices: project.serviceCatalog.map(s => ({
-      serviceId: s.id,
-      team: 'JPL GOMES',
-      project: project.contract,
-      description: s.description,
-      detail: s.detail,
-      unit: s.unit,
-      unitPrice: s.unitPrice,
-      kmStart: '',
-      kmEnd: '',
-      executedDay: 0,
-      executedMonth: 0,
-      plannedMonth: 0,
-    })),
+    executedServices: project.serviceCatalog.map(s => {
+      const plannedValue = planning?.services.find(ps => ps.serviceId === s.id)?.plannedMonth || 0;
+      return {
+        serviceId: s.id,
+        team: project.name.split(' ')[0] || 'JPL GOMES',
+        project: project.contract,
+        description: s.description,
+        detail: s.detail,
+        unit: s.unit,
+        unitPrice: s.unitPrice,
+        kmStart: '',
+        kmEnd: '',
+        executedDay: 0,
+        executedMonth: 0,
+        plannedMonth: plannedValue,
+      };
+    }),
     observations: '',
     photos: [],
   };
