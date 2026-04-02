@@ -9,6 +9,17 @@ import { Save, X, Pencil, Eye, Plus, Trash2, Camera, ArrowLeft } from 'lucide-re
 import { toast } from 'sonner';
 import DecimalInput from '@/components/DecimalInput';
 import PrintPreviewModal from '@/components/PrintPreviewModal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface DiaryFormProps {
   project: Project;
