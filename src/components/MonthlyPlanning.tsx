@@ -61,13 +61,13 @@ const MonthlyPlanning = ({ project, diaries, onBack }: MonthlyPlanningProps) => 
     }
   };
 
-  // Accumulated from diaries in the selected month
+  // Accumulated from diaries using D-1 service date for month grouping
   const monthlyAccum = useMemo(() => {
     return project.serviceCatalog.map((s, i) => {
       return diaries
         .filter(d => {
-          const dd = new Date(d.date);
-          return dd.getMonth() === selectedMonth && dd.getFullYear() === selectedYear;
+          const { month, year } = getServiceMonthYear(d.date);
+          return month === selectedMonth && year === selectedYear;
         })
         .reduce((sum, d) => {
           const svc = d.executedServices[i];

@@ -138,6 +138,9 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
             )}
           </div>
         </div>
+        <Button variant="ghost" size="sm" onClick={onBack} className="mt-2 text-primary-foreground/70 gap-1.5 -ml-2">
+          <ArrowLeft className="h-4 w-4" /> Voltar aos Diários
+        </Button>
       </div>
 
       <Tabs defaultValue="header" className="w-full">

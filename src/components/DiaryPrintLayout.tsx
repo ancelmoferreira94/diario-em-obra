@@ -143,6 +143,7 @@ const DiaryPrintLayout = ({ diary, project, financialData, financialTotal, visib
         .text-center { text-align: center !important; }
         .text-left { text-align: left !important; }
         .page-break { page-break-before: always; }
+        .print-section { page-break-inside: avoid; }
       `}</style>
 
       {/* Header with logos */}

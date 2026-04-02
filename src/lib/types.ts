@@ -204,21 +204,41 @@ export function createNewDiary(project: Project, diaries: DiaryEntry[]): DiaryEn
   };
 }
 
+/**
+ * Get the service execution date (D-1) for a diary date.
+ */
+export function getServiceDateFromDiary(diaryDate: string): string {
+  const d = new Date(diaryDate + 'T12:00:00');
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split('T')[0];
+}
+
+/**
+ * Get the month/year of the service execution (D-1), not the diary date.
+ * The diary of day 1 still belongs to the previous month's accumulation.
+ */
+export function getServiceMonthYear(diaryDate: string): { month: number; year: number } {
+  const serviceDate = getServiceDateFromDiary(diaryDate);
+  const d = new Date(serviceDate + 'T12:00:00');
+  return { month: d.getMonth(), year: d.getFullYear() };
+}
+
 export function getMonthlyAccumulated(
   diaries: DiaryEntry[],
   currentDiary: DiaryEntry,
   serviceIndex: number
 ): number {
-  const currentDate = new Date(currentDiary.date);
-  const month = currentDate.getMonth();
-  const year = currentDate.getFullYear();
+  const currentServiceDate = getServiceDateFromDiary(currentDiary.date);
+  const currentSD = new Date(currentServiceDate + 'T12:00:00');
+  const month = currentSD.getMonth();
+  const year = currentSD.getFullYear();
 
   return diaries
     .filter(d => {
       if (d.id === currentDiary.id) return false;
       if (d.projectId !== currentDiary.projectId) return false;
-      const dd = new Date(d.date);
-      return dd.getMonth() === month && dd.getFullYear() === year && dd <= currentDate;
+      const sd = new Date(getServiceDateFromDiary(d.date) + 'T12:00:00');
+      return sd.getMonth() === month && sd.getFullYear() === year && sd <= currentSD;
     })
     .reduce((sum, d) => {
       const service = d.executedServices[serviceIndex];

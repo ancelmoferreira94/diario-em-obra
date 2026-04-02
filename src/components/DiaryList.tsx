@@ -44,8 +44,9 @@ interface MonthGroup {
 function groupByMonth(diaries: DiaryEntry[]): MonthGroup[] {
   const groups: Record<string, DiaryEntry[]> = {};
   diaries.forEach(d => {
-    const date = new Date(d.date + 'T12:00:00');
-    const key = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
+    // Use D-1 (service execution date) for month grouping
+    const { month, year } = getServiceMonthYear(d.date);
+    const key = `${year}-${String(month).padStart(2, '0')}`;
     if (!groups[key]) groups[key] = [];
     groups[key].push(d);
   });
