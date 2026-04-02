@@ -30,6 +30,7 @@ interface DiaryFormProps {
   onCancel: () => void;
   onEdit: () => void;
   onBack: () => void;
+  onDelete?: (id: string) => void;
 }
 
 function formatDateBR(dateStr: string) {
