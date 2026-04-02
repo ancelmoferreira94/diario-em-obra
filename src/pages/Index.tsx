@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { toast } from 'sonner';
 import { DiaryEntry, Project, createNewDiary, createDefaultProject, MonthlyPlanningEntry } from '@/lib/types';
 import { loadDiaries, saveDiary, deleteDiary, loadProjects, saveProject, deleteProject, loadPlanning } from '@/lib/storage';
 import DiaryList from '@/components/DiaryList';
