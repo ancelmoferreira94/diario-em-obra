@@ -150,9 +150,34 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
             )}
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={onBack} className="mt-2 text-primary-foreground/70 gap-1.5 -ml-2">
-          <ArrowLeft className="h-4 w-4" /> Voltar aos Diários
-        </Button>
+        <div className="flex items-center justify-between mt-2">
+          <Button variant="ghost" size="sm" onClick={onBack} className="text-primary-foreground/70 gap-1.5 -ml-2">
+            <ArrowLeft className="h-4 w-4" /> Voltar aos Diários
+          </Button>
+          {onDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-destructive-foreground/80 gap-1.5 hover:bg-destructive/20">
+                  <Trash2 className="h-4 w-4" /> Excluir Diário
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir Diário</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tem certeza que deseja excluir este diário? Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDelete(diary.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </div>
 
       <Tabs defaultValue="header" className="w-full">
