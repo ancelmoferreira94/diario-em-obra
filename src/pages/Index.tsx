@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { DiaryEntry, Project, createNewDiary, createDefaultProject } from '@/lib/types';
-import { loadDiaries, saveDiary, loadProjects, saveProject, deleteProject } from '@/lib/storage';
+import { DiaryEntry, Project, createNewDiary, createDefaultProject, MonthlyPlanningEntry } from '@/lib/types';
+import { loadDiaries, saveDiary, loadProjects, saveProject, deleteProject, loadPlanning } from '@/lib/storage';
 import DiaryList from '@/components/DiaryList';
 import DiaryForm from '@/components/DiaryForm';
 import ProjectList from '@/components/ProjectList';
@@ -63,7 +63,8 @@ const Index = () => {
 
   const handleNewDiary = useCallback(() => {
     if (!currentProject) return;
-    const newDiary = createNewDiary(currentProject, diaries);
+    const planningEntries = loadPlanning();
+    const newDiary = createNewDiary(currentProject, diaries, planningEntries);
     setCurrentDiary(newDiary);
     setReadOnly(false);
     setView('form');
@@ -136,6 +137,7 @@ const Index = () => {
           onSave={handleSaveDiary}
           onCancel={handleCancel}
           onEdit={handleEdit}
+          onBack={() => { setView('diaries'); setCurrentDiary(null); }}
         />
       )}
       {view === 'project-settings' && currentProject && (

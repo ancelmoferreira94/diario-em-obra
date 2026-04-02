@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Save, X, Pencil, Eye, Plus, Trash2, Camera } from 'lucide-react';
+import { Save, X, Pencil, Eye, Plus, Trash2, Camera, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import DecimalInput from '@/components/DecimalInput';
 import PrintPreviewModal from '@/components/PrintPreviewModal';
@@ -18,6 +18,7 @@ interface DiaryFormProps {
   onSave: (diary: DiaryEntry) => void;
   onCancel: () => void;
   onEdit: () => void;
+  onBack: () => void;
 }
 
 function formatDateBR(dateStr: string) {
@@ -37,7 +38,7 @@ function formatCurrency(value: number): string {
 
 const WEEKDAYS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
 
-const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCancel, onEdit }: DiaryFormProps) => {
+const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCancel, onEdit, onBack }: DiaryFormProps) => {
   const [diary, setDiary] = useState<DiaryEntry>(() => {
     const d = { ...initial };
     d.executedServices = d.executedServices.map((s, i) => ({
@@ -137,6 +138,9 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
             )}
           </div>
         </div>
+        <Button variant="ghost" size="sm" onClick={onBack} className="mt-2 text-primary-foreground/70 gap-1.5 -ml-2">
+          <ArrowLeft className="h-4 w-4" /> Voltar aos Diários
+        </Button>
       </div>
 
       <Tabs defaultValue="header" className="w-full">

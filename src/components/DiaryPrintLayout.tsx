@@ -62,12 +62,6 @@ const DiaryPrintLayout = ({ diary, project, financialData, financialTotal, visib
   return (
     <div className="print-layout">
       <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          #print-content, #print-content * { visibility: visible; }
-          #print-content { position: absolute; left: 0; top: 0; width: 100%; }
-          .no-print { display: none !important; }
-        }
         .print-layout {
           font-family: Arial, Helvetica, sans-serif;
           font-size: 8pt;
@@ -80,6 +74,7 @@ const DiaryPrintLayout = ({ diary, project, financialData, financialTotal, visib
         .print-layout table {
           width: 100%;
           border-collapse: collapse;
+          page-break-inside: avoid;
         }
         .print-layout th, .print-layout td {
           border: 1px solid #333;
@@ -149,6 +144,7 @@ const DiaryPrintLayout = ({ diary, project, financialData, financialTotal, visib
         .text-center { text-align: center !important; }
         .text-left { text-align: left !important; }
         .page-break { page-break-before: always; }
+        .print-section { page-break-inside: avoid; }
       `}</style>
 
       {/* Header with logos */}
