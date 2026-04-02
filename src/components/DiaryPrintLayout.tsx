@@ -62,12 +62,6 @@ const DiaryPrintLayout = ({ diary, project, financialData, financialTotal, visib
   return (
     <div className="print-layout">
       <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          #print-content, #print-content * { visibility: visible; }
-          #print-content { position: absolute; left: 0; top: 0; width: 100%; }
-          .no-print { display: none !important; }
-        }
         .print-layout {
           font-family: Arial, Helvetica, sans-serif;
           font-size: 8pt;
