@@ -82,6 +82,15 @@ const Index = () => {
     setView('diaries');
   }, []);
 
+  const handleDeleteDiary = useCallback(async (id: string) => {
+    if (!currentProject) return;
+    const updated = await deleteDiary(id, currentProject.id);
+    setDiaries(updated);
+    setCurrentDiary(null);
+    setView('diaries');
+    toast.success('Diário excluído com sucesso!');
+  }, [currentProject]);
+
   const handleCancel = useCallback(() => {
     if (view === 'form') setView('diaries');
     else if (view === 'project-settings') setView(currentProject ? 'diaries' : 'projects');
