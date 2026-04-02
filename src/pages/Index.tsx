@@ -147,6 +147,7 @@ const Index = () => {
           onCancel={handleCancel}
           onEdit={handleEdit}
           onBack={() => { setView('diaries'); setCurrentDiary(null); }}
+          onDelete={handleDeleteDiary}
         />
       )}
       {view === 'project-settings' && currentProject && (
