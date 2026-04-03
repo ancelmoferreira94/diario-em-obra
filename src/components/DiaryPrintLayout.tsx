@@ -149,7 +149,7 @@ const DiaryPrintLayout = ({ diary, project, financialData, financialTotal, visib
 
       {/* Header with logos */}
       <div className="logo-header">
-        <img src={logoJpl} alt="JPL Gomes" />
+        <div />
         <img src={logoPez} alt="Grupo PEZ" />
       </div>
 
