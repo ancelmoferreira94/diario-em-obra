@@ -21,7 +21,10 @@ const Index = () => {
 
   // Load projects on mount
   useEffect(() => {
-    loadProjects().then(p => { setProjects(p); setLoading(false); });
+    loadProjects()
+      .then(p => { setProjects(p); })
+      .catch(err => { console.error('Erro ao carregar projetos:', err); })
+      .finally(() => setLoading(false));
   }, []);
 
   // Load diaries when project changes
