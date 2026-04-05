@@ -15,75 +15,53 @@ interface MonthlyPlanningProps {
 
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
-function formatCurrency(value: number): string {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const formatCurrency = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+function createEmptyEntry(projectId: string, month: number, year: number, catalog: { id: string }[]): MonthlyPlanningEntry {
+  return {
+    id: crypto.randomUUID(),
+    projectId,
+    month,
+    year,
+    services: catalog.map(s => ({ serviceId: s.id, plannedMonth: 0 })),
+    observations: '',
+  };
 }
 
 const MonthlyPlanning = ({ project, diaries, onBack }: MonthlyPlanningProps) => {
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-
   const allPlanning = useMemo(() => loadPlanning(), []);
 
-  const existingEntry = useMemo(() =>
-    allPlanning.find(p => p.projectId === project.id && p.month === selectedMonth && p.year === selectedYear),
-    [allPlanning, project.id, selectedMonth, selectedYear]
-  );
-
   const [entry, setEntry] = useState<MonthlyPlanningEntry>(() => {
-    if (existingEntry) return { ...existingEntry };
-    return {
-      id: crypto.randomUUID(),
-      projectId: project.id,
-      month: selectedMonth,
-      year: selectedYear,
-      services: project.serviceCatalog.map(s => ({ serviceId: s.id, plannedMonth: 0 })),
-      observations: '',
-    };
+    const existing = allPlanning.find(p => p.projectId === project.id && p.month === selectedMonth && p.year === selectedYear);
+    return existing ? { ...existing } : createEmptyEntry(project.id, selectedMonth, selectedYear, project.serviceCatalog);
   });
 
   const handleMonthChange = (month: number, year: number) => {
     setSelectedMonth(month);
     setSelectedYear(year);
     const existing = allPlanning.find(p => p.projectId === project.id && p.month === month && p.year === year);
-    if (existing) {
-      setEntry({ ...existing });
-    } else {
-      setEntry({
-        id: crypto.randomUUID(),
-        projectId: project.id,
-        month,
-        year,
-        services: project.serviceCatalog.map(s => ({ serviceId: s.id, plannedMonth: 0 })),
-        observations: '',
-      });
-    }
+    setEntry(existing ? { ...existing } : createEmptyEntry(project.id, month, year, project.serviceCatalog));
   };
 
-  // Accumulated from diaries using D-1 service date for month grouping
   const monthlyAccum = useMemo(() => {
-    return project.serviceCatalog.map((s, i) => {
-      return diaries
-        .filter(d => {
-          const { month, year } = getServiceMonthYear(d.date);
-          return month === selectedMonth && year === selectedYear;
-        })
-        .reduce((sum, d) => {
-          const svc = d.executedServices[i];
-          return sum + (svc ? svc.executedDay : 0);
-        }, 0);
-    });
+    return project.serviceCatalog.map((_s, i) =>
+      diaries
+        .filter(d => { const { month, year } = getServiceMonthYear(d.date); return month === selectedMonth && year === selectedYear; })
+        .reduce((sum, d) => sum + (d.executedServices[i]?.executedDay ?? 0), 0)
+    );
   }, [diaries, selectedMonth, selectedYear, project.serviceCatalog]);
 
   const handleSave = () => {
-    const updated = { ...entry, month: selectedMonth, year: selectedYear };
-    savePlanningEntry(updated);
+    savePlanningEntry({ ...entry, month: selectedMonth, year: selectedYear });
     toast.success('Planejamento salvo!');
   };
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 animate-fade-in">
+      {/* Header */}
       <div className="bg-primary text-primary-foreground rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
@@ -101,25 +79,17 @@ const MonthlyPlanning = ({ project, diaries, onBack }: MonthlyPlanningProps) => 
         </div>
       </div>
 
-      {/* Month selector */}
+      {/* Seletor de mês */}
       <div className="flex items-center gap-3 mb-4">
-        <select
-          value={selectedMonth}
-          onChange={e => handleMonthChange(parseInt(e.target.value), selectedYear)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-        >
+        <select value={selectedMonth} onChange={e => handleMonthChange(parseInt(e.target.value), selectedYear)} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
           {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
         </select>
-        <Input
-          type="number"
-          value={selectedYear}
-          onChange={e => handleMonthChange(selectedMonth, parseInt(e.target.value) || selectedYear)}
-          className="w-24 h-9"
-        />
+        <Input type="number" value={selectedYear} onChange={e => handleMonthChange(selectedMonth, parseInt(e.target.value) || selectedYear)} className="w-24 h-9" />
       </div>
 
+      {/* Tabela de serviços */}
       <div className="bg-card rounded-lg p-6 border overflow-x-auto mb-4">
-        <h2 className="section-title">Planejamento de Serviços — {MONTHS[selectedMonth]} {selectedYear}</h2>
+        <h2 className="section-title">Planejamento — {MONTHS[selectedMonth]} {selectedYear}</h2>
         <table className="data-table">
           <thead>
             <tr>
@@ -135,8 +105,8 @@ const MonthlyPlanning = ({ project, diaries, onBack }: MonthlyPlanningProps) => 
           </thead>
           <tbody>
             {project.serviceCatalog.map((s, i) => {
-              const planned = entry.services.find(es => es.serviceId === s.id)?.plannedMonth || 0;
-              const executed = monthlyAccum[i] || 0;
+              const planned = entry.services.find(es => es.serviceId === s.id)?.plannedMonth ?? 0;
+              const executed = monthlyAccum[i] ?? 0;
               return (
                 <tr key={s.id}>
                   <td className="font-medium">{s.description}</td>
@@ -144,14 +114,9 @@ const MonthlyPlanning = ({ project, diaries, onBack }: MonthlyPlanningProps) => 
                   <td>{s.unit}</td>
                   <td className="text-right">{s.unitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                   <td>
-                    <Input
-                      type="number" min={0} step="0.01"
-                      value={planned || ''}
-                      className="h-7 w-24 text-center text-xs"
+                    <Input type="number" min={0} step="0.01" value={planned || ''} className="h-7 w-24 text-center text-xs"
                       onChange={e => {
-                        const services = entry.services.map(es =>
-                          es.serviceId === s.id ? { ...es, plannedMonth: parseFloat(e.target.value) || 0 } : es
-                        );
+                        const services = entry.services.map(es => es.serviceId === s.id ? { ...es, plannedMonth: parseFloat(e.target.value) || 0 } : es);
                         setEntry(prev => ({ ...prev, services }));
                       }}
                     />
@@ -167,27 +132,20 @@ const MonthlyPlanning = ({ project, diaries, onBack }: MonthlyPlanningProps) => 
             <tr>
               <td colSpan={6} className="text-right font-bold">TOTAL</td>
               <td className="text-right font-bold">
-                {formatCurrency(project.serviceCatalog.reduce((sum, s, i) => {
-                  const planned = entry.services.find(es => es.serviceId === s.id)?.plannedMonth || 0;
-                  return sum + planned * s.unitPrice;
-                }, 0))}
+                {formatCurrency(project.serviceCatalog.reduce((sum, s) => sum + (entry.services.find(es => es.serviceId === s.id)?.plannedMonth ?? 0) * s.unitPrice, 0))}
               </td>
               <td className="text-right font-bold">
-                {formatCurrency(project.serviceCatalog.reduce((sum, s, i) => sum + (monthlyAccum[i] || 0) * s.unitPrice, 0))}
+                {formatCurrency(project.serviceCatalog.reduce((sum, s, i) => sum + (monthlyAccum[i] ?? 0) * s.unitPrice, 0))}
               </td>
             </tr>
           </tfoot>
         </table>
       </div>
 
+      {/* Observações */}
       <div className="bg-card rounded-lg p-6 border">
         <h2 className="section-title">Observações do Planejamento</h2>
-        <Textarea
-          value={entry.observations}
-          onChange={e => setEntry(prev => ({ ...prev, observations: e.target.value }))}
-          rows={5}
-          placeholder="Observações sobre o planejamento mensal..."
-        />
+        <Textarea value={entry.observations} onChange={e => setEntry(prev => ({ ...prev, observations: e.target.value }))} rows={5} placeholder="Observações sobre o planejamento mensal..." />
       </div>
     </div>
   );

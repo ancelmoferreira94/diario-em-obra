@@ -12,10 +12,6 @@ interface ProjectSettingsProps {
   onCancel: () => void;
 }
 
-function formatCurrency(value: number): string {
-  return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 const ProjectSettings = ({ project: initial, onSave, onCancel }: ProjectSettingsProps) => {
   const [project, setProject] = useState<Project>({ ...initial });
 
@@ -28,37 +24,17 @@ const ProjectSettings = ({ project: initial, onSave, onCancel }: ProjectSettings
     toast.success('Obra salva com sucesso!');
   };
 
-  const addService = () => {
-    const newService: ServiceCatalogItem = {
-      id: crypto.randomUUID(),
-      description: '',
-      detail: '',
-      unit: '',
-      unitPrice: 0,
-    };
-    update('serviceCatalog', [...project.serviceCatalog, newService]);
-  };
-
-  const removeService = (index: number) => {
-    update('serviceCatalog', project.serviceCatalog.filter((_, i) => i !== index));
-  };
-
   const updateService = (index: number, field: keyof ServiceCatalogItem, value: string | number) => {
     const arr = [...project.serviceCatalog];
     arr[index] = { ...arr[index], [field]: value };
     update('serviceCatalog', arr);
   };
 
-  const addStaffTeam = () => {
-    update('defaultStaff', [...project.defaultStaff, { team: '', roles: [''] }]);
-  };
-
-  const addEquipment = () => {
-    update('defaultEquipment', [...project.defaultEquipment, { quantity: 1, equipment: '', identification: '' }]);
-  };
+  const updateArray = <T,>(key: keyof Project, arr: T[]) => update(key, arr as any);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 animate-fade-in">
+      {/* Header */}
       <div className="bg-primary text-primary-foreground rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
@@ -78,53 +54,37 @@ const ProjectSettings = ({ project: initial, onSave, onCancel }: ProjectSettings
 
       <Tabs defaultValue="general" className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1 bg-muted p-1 mb-4">
-          <TabsTrigger value="general" className="text-xs px-3 py-1.5">Dados Gerais</TabsTrigger>
-          <TabsTrigger value="services" className="text-xs px-3 py-1.5">Catálogo de Serviços</TabsTrigger>
-          <TabsTrigger value="staff" className="text-xs px-3 py-1.5">Equipes</TabsTrigger>
-          <TabsTrigger value="equipment" className="text-xs px-3 py-1.5">Equipamentos</TabsTrigger>
-          <TabsTrigger value="contractors" className="text-xs px-3 py-1.5">Empreiteiros</TabsTrigger>
+          {['Dados Gerais', 'Catálogo de Serviços', 'Equipes', 'Equipamentos', 'Empreiteiros'].map((label, i) => (
+            <TabsTrigger key={i} value={['general', 'services', 'staff', 'equipment', 'contractors'][i]} className="text-xs px-3 py-1.5">
+              {label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        {/* General */}
+        {/* Dados Gerais */}
         <TabsContent value="general">
           <div className="bg-card rounded-lg p-6 border space-y-4">
             <h2 className="section-title">Dados Gerais</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Nome da Obra</label>
-                <Input value={project.name} onChange={e => update('name', e.target.value)} className="mt-1" />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Contrato</label>
-                <Input value={project.contract} onChange={e => update('contract', e.target.value)} className="mt-1" />
-              </div>
+              <LabeledInput label="Nome da Obra" value={project.name} onChange={v => update('name', v)} />
+              <LabeledInput label="Contrato" value={project.contract} onChange={v => update('contract', v)} />
               <div className="md:col-span-2">
-                <label className="text-sm font-medium text-muted-foreground">Rodovia(s)</label>
-                <Input value={project.highway} onChange={e => update('highway', e.target.value)} className="mt-1" />
+                <LabeledInput label="Rodovia(s)" value={project.highway} onChange={v => update('highway', v)} />
               </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Escritório</label>
-                <Input value={project.office} onChange={e => update('office', e.target.value)} className="mt-1" />
-              </div>
-              <div></div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Início do Contrato</label>
-                <Input type="date" value={project.contractStart} onChange={e => update('contractStart', e.target.value)} className="mt-1" />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Término do Contrato</label>
-                <Input type="date" value={project.contractEnd} onChange={e => update('contractEnd', e.target.value)} className="mt-1" />
-              </div>
+              <LabeledInput label="Escritório" value={project.office} onChange={v => update('office', v)} />
+              <div />
+              <LabeledInput label="Início do Contrato" value={project.contractStart} onChange={v => update('contractStart', v)} type="date" />
+              <LabeledInput label="Término do Contrato" value={project.contractEnd} onChange={v => update('contractEnd', v)} type="date" />
             </div>
           </div>
         </TabsContent>
 
-        {/* Service Catalog */}
+        {/* Catálogo de Serviços */}
         <TabsContent value="services">
           <div className="bg-card rounded-lg p-6 border overflow-x-auto">
             <h2 className="section-title">Catálogo de Serviços</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              Defina os serviços disponíveis para esta obra. Esses serviços serão usados na previsão e nos serviços executados de cada diário.
+              Defina os serviços disponíveis para esta obra.
             </p>
             <table className="data-table">
               <thead>
@@ -133,30 +93,18 @@ const ProjectSettings = ({ project: initial, onSave, onCancel }: ProjectSettings
                   <th>Detalhamento</th>
                   <th>Unidade</th>
                   <th className="text-right">Preço Unitário (R$)</th>
-                  <th className="w-12"></th>
+                  <th className="w-12" />
                 </tr>
               </thead>
               <tbody>
                 {project.serviceCatalog.map((s, i) => (
                   <tr key={s.id}>
+                    <td><Input value={s.description} className="h-8" onChange={e => updateService(i, 'description', e.target.value)} /></td>
+                    <td><Input value={s.detail} className="h-8" onChange={e => updateService(i, 'detail', e.target.value)} /></td>
+                    <td><Input value={s.unit} className="h-8 w-20" onChange={e => updateService(i, 'unit', e.target.value)} /></td>
+                    <td><Input type="number" step="0.01" value={s.unitPrice || ''} className="h-8 w-32 text-right" onChange={e => updateService(i, 'unitPrice', parseFloat(e.target.value) || 0)} /></td>
                     <td>
-                      <Input value={s.description} className="h-8"
-                        onChange={e => updateService(i, 'description', e.target.value)} />
-                    </td>
-                    <td>
-                      <Input value={s.detail} className="h-8"
-                        onChange={e => updateService(i, 'detail', e.target.value)} />
-                    </td>
-                    <td>
-                      <Input value={s.unit} className="h-8 w-20"
-                        onChange={e => updateService(i, 'unit', e.target.value)} />
-                    </td>
-                    <td>
-                      <Input type="number" step="0.01" value={s.unitPrice || ''} className="h-8 w-32 text-right"
-                        onChange={e => updateService(i, 'unitPrice', parseFloat(e.target.value) || 0)} />
-                    </td>
-                    <td>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeService(i)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => update('serviceCatalog', project.serviceCatalog.filter((_, j) => j !== i))}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </td>
@@ -164,13 +112,13 @@ const ProjectSettings = ({ project: initial, onSave, onCancel }: ProjectSettings
                 ))}
               </tbody>
             </table>
-            <Button variant="outline" size="sm" className="mt-3 gap-1.5" onClick={addService}>
+            <Button variant="outline" size="sm" className="mt-3 gap-1.5" onClick={() => update('serviceCatalog', [...project.serviceCatalog, { id: crypto.randomUUID(), description: '', detail: '', unit: '', unitPrice: 0 }])}>
               <Plus className="h-4 w-4" /> Adicionar Serviço
             </Button>
           </div>
         </TabsContent>
 
-        {/* Staff */}
+        {/* Equipes */}
         <TabsContent value="staff">
           <div className="bg-card rounded-lg p-6 border">
             <h2 className="section-title">Equipes Padrão</h2>
@@ -221,13 +169,13 @@ const ProjectSettings = ({ project: initial, onSave, onCancel }: ProjectSettings
                 </Button>
               </div>
             ))}
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={addStaffTeam}>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => update('defaultStaff', [...project.defaultStaff, { team: '', roles: [''] }])}>
               <Plus className="h-4 w-4" /> Adicionar Equipe
             </Button>
           </div>
         </TabsContent>
 
-        {/* Equipment */}
+        {/* Equipamentos */}
         <TabsContent value="equipment">
           <div className="bg-card rounded-lg p-6 border overflow-x-auto">
             <h2 className="section-title">Equipamentos Padrão</h2>
@@ -237,30 +185,18 @@ const ProjectSettings = ({ project: initial, onSave, onCancel }: ProjectSettings
                   <th className="w-16">Qtd</th>
                   <th>Equipamento/Veículo</th>
                   <th>Prefixo/Identificação</th>
-                  <th className="w-12"></th>
+                  <th className="w-12" />
                 </tr>
               </thead>
               <tbody>
                 {project.defaultEquipment.map((eq, i) => (
                   <tr key={i}>
                     <td><Input type="number" min={0} value={eq.quantity || ''} className="h-8 w-16 text-center"
-                      onChange={e => {
-                        const arr = [...project.defaultEquipment];
-                        arr[i] = { ...arr[i], quantity: parseInt(e.target.value) || 0 };
-                        update('defaultEquipment', arr);
-                      }} /></td>
+                      onChange={e => { const arr = [...project.defaultEquipment]; arr[i] = { ...arr[i], quantity: parseInt(e.target.value) || 0 }; update('defaultEquipment', arr); }} /></td>
                     <td><Input value={eq.equipment} className="h-8"
-                      onChange={e => {
-                        const arr = [...project.defaultEquipment];
-                        arr[i] = { ...arr[i], equipment: e.target.value };
-                        update('defaultEquipment', arr);
-                      }} /></td>
+                      onChange={e => { const arr = [...project.defaultEquipment]; arr[i] = { ...arr[i], equipment: e.target.value }; update('defaultEquipment', arr); }} /></td>
                     <td><Input value={eq.identification} className="h-8"
-                      onChange={e => {
-                        const arr = [...project.defaultEquipment];
-                        arr[i] = { ...arr[i], identification: e.target.value };
-                        update('defaultEquipment', arr);
-                      }} /></td>
+                      onChange={e => { const arr = [...project.defaultEquipment]; arr[i] = { ...arr[i], identification: e.target.value }; update('defaultEquipment', arr); }} /></td>
                     <td><Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"
                       onClick={() => update('defaultEquipment', project.defaultEquipment.filter((_, j) => j !== i))}>
                       <Trash2 className="h-4 w-4" /></Button></td>
@@ -268,13 +204,13 @@ const ProjectSettings = ({ project: initial, onSave, onCancel }: ProjectSettings
                 ))}
               </tbody>
             </table>
-            <Button variant="outline" size="sm" className="mt-3 gap-1.5" onClick={addEquipment}>
+            <Button variant="outline" size="sm" className="mt-3 gap-1.5" onClick={() => update('defaultEquipment', [...project.defaultEquipment, { quantity: 1, equipment: '', identification: '' }])}>
               <Plus className="h-4 w-4" /> Adicionar Equipamento
             </Button>
           </div>
         </TabsContent>
 
-        {/* Contractors */}
+        {/* Empreiteiros */}
         <TabsContent value="contractors">
           <div className="bg-card rounded-lg p-6 border overflow-x-auto">
             <h2 className="section-title">Empreiteiros Padrão</h2>
@@ -285,45 +221,22 @@ const ProjectSettings = ({ project: initial, onSave, onCancel }: ProjectSettings
                   <th>Razão Social</th>
                   <th className="w-24">Nº Func.</th>
                   <th>Objeto do Contrato</th>
-                  <th className="w-12"></th>
+                  <th className="w-12" />
                 </tr>
               </thead>
               <tbody>
                 {project.defaultContractors.map((c, i) => (
                   <tr key={i}>
-                    <td><Input value={c.contractNo} className="h-8"
-                      onChange={e => {
-                        const arr = [...project.defaultContractors];
-                        arr[i] = { ...arr[i], contractNo: e.target.value };
-                        update('defaultContractors', arr);
-                      }} /></td>
-                    <td><Input value={c.companyName} className="h-8"
-                      onChange={e => {
-                        const arr = [...project.defaultContractors];
-                        arr[i] = { ...arr[i], companyName: e.target.value };
-                        update('defaultContractors', arr);
-                      }} /></td>
-                    <td><Input type="number" min={0} value={c.employees || ''} className="h-8 w-20 text-center"
-                      onChange={e => {
-                        const arr = [...project.defaultContractors];
-                        arr[i] = { ...arr[i], employees: parseInt(e.target.value) || 0 };
-                        update('defaultContractors', arr);
-                      }} /></td>
-                    <td><Input value={c.contractObject} className="h-8"
-                      onChange={e => {
-                        const arr = [...project.defaultContractors];
-                        arr[i] = { ...arr[i], contractObject: e.target.value };
-                        update('defaultContractors', arr);
-                      }} /></td>
-                    <td><Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"
-                      onClick={() => update('defaultContractors', project.defaultContractors.filter((_, j) => j !== i))}>
-                      <Trash2 className="h-4 w-4" /></Button></td>
+                    <td><Input value={c.contractNo} className="h-8" onChange={e => { const arr = [...project.defaultContractors]; arr[i] = { ...arr[i], contractNo: e.target.value }; update('defaultContractors', arr); }} /></td>
+                    <td><Input value={c.companyName} className="h-8" onChange={e => { const arr = [...project.defaultContractors]; arr[i] = { ...arr[i], companyName: e.target.value }; update('defaultContractors', arr); }} /></td>
+                    <td><Input type="number" min={0} value={c.employees || ''} className="h-8 w-20 text-center" onChange={e => { const arr = [...project.defaultContractors]; arr[i] = { ...arr[i], employees: parseInt(e.target.value) || 0 }; update('defaultContractors', arr); }} /></td>
+                    <td><Input value={c.contractObject} className="h-8" onChange={e => { const arr = [...project.defaultContractors]; arr[i] = { ...arr[i], contractObject: e.target.value }; update('defaultContractors', arr); }} /></td>
+                    <td><Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => update('defaultContractors', project.defaultContractors.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <Button variant="outline" size="sm" className="mt-3 gap-1.5"
-              onClick={() => update('defaultContractors', [...project.defaultContractors, { contractNo: '', companyName: '', employees: 0, contractObject: '' }])}>
+            <Button variant="outline" size="sm" className="mt-3 gap-1.5" onClick={() => update('defaultContractors', [...project.defaultContractors, { contractNo: '', companyName: '', employees: 0, contractObject: '' }])}>
               <Plus className="h-4 w-4" /> Adicionar Empreiteiro
             </Button>
           </div>
@@ -332,5 +245,15 @@ const ProjectSettings = ({ project: initial, onSave, onCancel }: ProjectSettings
     </div>
   );
 };
+
+// Helper component
+function LabeledInput({ label, value, onChange, type = 'text' }: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
+  return (
+    <div>
+      <label className="text-sm font-medium text-muted-foreground">{label}</label>
+      <Input type={type} value={value} onChange={e => onChange(e.target.value)} className="mt-1" />
+    </div>
+  );
+}
 
 export default ProjectSettings;

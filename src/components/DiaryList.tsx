@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Plus, FileText, Users, DollarSign, ArrowLeft, Settings, Calendar, ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 interface DiaryListProps {
   project: Project;
@@ -17,23 +17,13 @@ interface DiaryListProps {
 
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
-function formatDate(dateStr: string) {
+const formatDate = (dateStr: string) => {
   const [y, m, d] = dateStr.split('-');
   return `${d}/${m}/${y}`;
-}
+};
 
-function getTotalStaff(diary: DiaryEntry): number {
-  return diary.staffJpl.reduce((sum, s) => sum + s.quantity, 0) +
-    diary.contractors.reduce((sum, c) => sum + c.employees, 0);
-}
-
-function getTotalFinancial(diary: DiaryEntry): number {
-  return diary.executedServices.reduce((sum, s) => sum + s.executedDay * s.unitPrice, 0);
-}
-
-function formatCurrency(value: number): string {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
+const formatCurrency = (value: number) =>
+  value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 interface MonthGroup {
   key: string;
@@ -43,31 +33,30 @@ interface MonthGroup {
 
 function groupByMonth(diaries: DiaryEntry[]): MonthGroup[] {
   const groups: Record<string, DiaryEntry[]> = {};
-  diaries.forEach(d => {
-    // Use D-1 (service execution date) for month grouping
+  for (const d of diaries) {
     const { month, year } = getServiceMonthYear(d.date);
     const key = `${year}-${String(month).padStart(2, '0')}`;
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(d);
-  });
+    (groups[key] ??= []).push(d);
+  }
   return Object.entries(groups)
     .sort(([a], [b]) => b.localeCompare(a))
-    .map(([key, diaries]) => {
+    .map(([key, items]) => {
       const [year, month] = key.split('-').map(Number);
       return {
         key,
         label: `${MONTHS[month]} ${year}`,
-        diaries: diaries.sort((a, b) => b.number - a.number),
+        diaries: items.sort((a, b) => b.number - a.number),
       };
     });
 }
 
 const DiaryList = ({ project, diaries, onNew, onOpen, onBack, onSettings, onPlanning }: DiaryListProps) => {
-  const monthGroups = groupByMonth(diaries);
-  const currentKey = (() => {
+  const monthGroups = useMemo(() => groupByMonth(diaries), [diaries]);
+  const currentKey = useMemo(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth()).padStart(2, '0')}`;
-  })();
+  }, []);
+
   const [openMonths, setOpenMonths] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
     monthGroups.forEach(g => { init[g.key] = g.key === currentKey; });
@@ -76,6 +65,7 @@ const DiaryList = ({ project, diaries, onNew, onOpen, onBack, onSettings, onPlan
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 animate-fade-in">
+      {/* Header */}
       <div className="bg-primary text-primary-foreground rounded-lg p-6 mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
@@ -100,6 +90,7 @@ const DiaryList = ({ project, diaries, onNew, onOpen, onBack, onSettings, onPlan
         </Button>
       </div>
 
+      {/* Lista ou estado vazio */}
       {diaries.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">
           <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
@@ -112,11 +103,7 @@ const DiaryList = ({ project, diaries, onNew, onOpen, onBack, onSettings, onPlan
             const isCurrentMonth = group.key === currentKey;
             const isOpen = openMonths[group.key] ?? isCurrentMonth;
             return (
-              <Collapsible
-                key={group.key}
-                open={isOpen}
-                onOpenChange={v => setOpenMonths(prev => ({ ...prev, [group.key]: v }))}
-              >
+              <Collapsible key={group.key} open={isOpen} onOpenChange={v => setOpenMonths(prev => ({ ...prev, [group.key]: v }))}>
                 <CollapsibleTrigger asChild>
                   <div className="flex items-center justify-between p-3 bg-muted rounded-lg cursor-pointer hover:bg-muted/80 transition-colors">
                     <div className="flex items-center gap-3">
@@ -132,14 +119,10 @@ const DiaryList = ({ project, diaries, onNew, onOpen, onBack, onSettings, onPlan
                 <CollapsibleContent>
                   <div className="grid gap-3 mt-2">
                     {group.diaries.map(diary => {
-                      const totalStaff = getTotalStaff(diary);
-                      const totalFinancial = getTotalFinancial(diary);
+                      const totalStaff = diary.staffJpl.reduce((s, r) => s + r.quantity, 0) + diary.contractors.reduce((s, c) => s + c.employees, 0);
+                      const totalFinancial = diary.executedServices.reduce((s, sv) => s + sv.executedDay * sv.unitPrice, 0);
                       return (
-                        <Card
-                          key={diary.id}
-                          className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-primary"
-                          onClick={() => onOpen(diary)}
-                        >
+                        <Card key={diary.id} className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-primary" onClick={() => onOpen(diary)}>
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between flex-wrap gap-2">
                               <div className="flex items-center gap-4">
@@ -152,14 +135,8 @@ const DiaryList = ({ project, diaries, onNew, onOpen, onBack, onSettings, onPlan
                                 </div>
                               </div>
                               <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                                <span className="flex items-center gap-1.5">
-                                  <Users className="h-4 w-4" />
-                                  {totalStaff} func.
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                  <DollarSign className="h-4 w-4" />
-                                  {formatCurrency(totalFinancial)}
-                                </span>
+                                <span className="flex items-center gap-1.5"><Users className="h-4 w-4" />{totalStaff} func.</span>
+                                <span className="flex items-center gap-1.5"><DollarSign className="h-4 w-4" />{formatCurrency(totalFinancial)}</span>
                               </div>
                             </div>
                           </CardContent>
