@@ -159,7 +159,7 @@ const DiaryPrintLayout = ({ diary, project, financialData, financialTotal, visib
           <tr>
             <td style={{ width: '15%' }}><strong>Contrato(s):</strong></td>
             <td style={{ width: '35%' }}>{project.contract}</td>
-            <td rowSpan={4} className="header-title" style={{ width: '50%' }}>DIÁRIO DE OBRA</td>
+            <td rowSpan={4} className="header-title" style={{ width: '50%', textAlign: 'center', verticalAlign: 'middle' }}>DIÁRIO DE OBRA</td>
           </tr>
           <tr>
             <td><strong>Início:</strong></td>
