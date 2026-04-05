@@ -1,3 +1,8 @@
+// ==============================
+// Diário de Obra — JPL GOMES
+// Tipos e interfaces do sistema
+// ==============================
+
 export interface ServiceCatalogItem {
   id: string;
   description: string;
@@ -221,41 +226,36 @@ export function createNewDiary(project: Project, diaries: DiaryEntry[], planning
 /**
  * Get the service execution date (D-1) for a diary date.
  */
+/** Retorna a data de execução do serviço (D-1) a partir da data do diário */
 export function getServiceDateFromDiary(diaryDate: string): string {
   const d = new Date(diaryDate + 'T12:00:00');
   d.setDate(d.getDate() - 1);
   return d.toISOString().split('T')[0];
 }
 
-/**
- * Get the month/year of the service execution (D-1), not the diary date.
- * The diary of day 1 still belongs to the previous month's accumulation.
- */
+/** Retorna mês/ano de execução do serviço (D-1), não da data do diário */
 export function getServiceMonthYear(diaryDate: string): { month: number; year: number } {
-  const serviceDate = getServiceDateFromDiary(diaryDate);
-  const d = new Date(serviceDate + 'T12:00:00');
-  return { month: d.getMonth(), year: d.getFullYear() };
+  const sd = new Date(getServiceDateFromDiary(diaryDate) + 'T12:00:00');
+  return { month: sd.getMonth(), year: sd.getFullYear() };
 }
 
+/** Calcula o acumulado mensal para um serviço específico */
 export function getMonthlyAccumulated(
   diaries: DiaryEntry[],
   currentDiary: DiaryEntry,
   serviceIndex: number
 ): number {
-  const currentServiceDate = getServiceDateFromDiary(currentDiary.date);
-  const currentSD = new Date(currentServiceDate + 'T12:00:00');
+  const currentSD = new Date(getServiceDateFromDiary(currentDiary.date) + 'T12:00:00');
   const month = currentSD.getMonth();
   const year = currentSD.getFullYear();
 
-  return diaries
+  const otherSum = diaries
     .filter(d => {
-      if (d.id === currentDiary.id) return false;
-      if (d.projectId !== currentDiary.projectId) return false;
+      if (d.id === currentDiary.id || d.projectId !== currentDiary.projectId) return false;
       const sd = new Date(getServiceDateFromDiary(d.date) + 'T12:00:00');
       return sd.getMonth() === month && sd.getFullYear() === year && sd <= currentSD;
     })
-    .reduce((sum, d) => {
-      const service = d.executedServices[serviceIndex];
-      return sum + (service ? service.executedDay : 0);
-    }, 0) + (currentDiary.executedServices[serviceIndex]?.executedDay || 0);
+    .reduce((sum, d) => sum + (d.executedServices[serviceIndex]?.executedDay ?? 0), 0);
+
+  return otherSum + (currentDiary.executedServices[serviceIndex]?.executedDay ?? 0);
 }
