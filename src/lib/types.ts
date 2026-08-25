@@ -79,6 +79,12 @@ export interface MonthlyPlanningEntry {
   observations: string;
 }
 
+export interface DefaultStaffRole {
+  role: string;
+  quantity: number;
+  observations: string;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -88,9 +94,26 @@ export interface Project {
   contractStart: string;
   contractEnd: string;
   serviceCatalog: ServiceCatalogItem[];
-  defaultStaff: { team: string; roles: string[] }[];
+  defaultStaff: { team: string; roles: DefaultStaffRole[] }[];
   defaultEquipment: Omit<EquipmentRow, 'operating' | 'stopped'>[];
   defaultContractors: ContractorRow[];
+}
+
+/**
+ * Normalize a project loaded from storage, converting legacy formats
+ * (roles as plain string[]) to the current shape.
+ */
+export function normalizeProject(p: Project): Project {
+  if (!p) return p;
+  const defaultStaff = (p.defaultStaff || []).map(t => ({
+    team: t.team,
+    roles: (t.roles || []).map(r =>
+      typeof r === 'string'
+        ? { role: r, quantity: 0, observations: '' }
+        : { role: r.role, quantity: r.quantity ?? 0, observations: r.observations ?? '' }
+    ),
+  }));
+  return { ...p, defaultStaff };
 }
 
 export interface DiaryEntry {
