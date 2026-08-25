@@ -1,11 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
-import { DiaryEntry, Project, createNewDiary, createDefaultProject } from '@/lib/types';
-import {
-  loadDiaries, saveDiary, deleteDiary,
-  loadProjects, saveProject, deleteProject,
-  loadPlanning,
-} from '@/lib/storage';
+import { DiaryEntry, Project, createNewDiary, createDefaultProject, MonthlyPlanningEntry } from '@/lib/types';
+import { loadDiaries, saveDiary, deleteDiary, loadProjects, saveProject, deleteProject, loadPlanning } from '@/lib/storage';
 import DiaryList from '@/components/DiaryList';
 import DiaryForm from '@/components/DiaryForm';
 import ProjectList from '@/components/ProjectList';
@@ -22,27 +18,21 @@ const Index = () => {
   const [currentDiary, setCurrentDiary] = useState<DiaryEntry | null>(null);
   const [readOnly, setReadOnly] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Carrega projetos ao montar
+  // Load projects on mount
   useEffect(() => {
     loadProjects()
-      .then(setProjects)
-      .catch(err => {
-        console.error('Erro ao carregar projetos:', err);
-        setError('Erro ao conectar ao banco de dados. Tente recarregar a página.');
-      })
+      .then(p => { setProjects(p); })
+      .catch(err => { console.error('Erro ao carregar projetos:', err); })
       .finally(() => setLoading(false));
   }, []);
 
-  // Carrega diários quando muda o projeto
+  // Load diaries when project changes
   useEffect(() => {
     if (currentProject) {
       loadDiaries(currentProject.id).then(setDiaries);
     }
   }, [currentProject?.id]);
-
-  // === Handlers de Projeto ===
 
   const handleSelectProject = useCallback((project: Project) => {
     setCurrentProject(project);
@@ -63,6 +53,11 @@ const Index = () => {
     setDiaries(prev => prev.filter(d => d.projectId !== id));
   }, []);
 
+  const handleOpenSettings = useCallback((project: Project) => {
+    setCurrentProject(project);
+    setView('project-settings');
+  }, []);
+
   const handleSaveProject = useCallback(async (project: Project) => {
     const updated = await saveProject(project);
     setProjects(updated);
@@ -70,12 +65,10 @@ const Index = () => {
     setView('diaries');
   }, []);
 
-  // === Handlers de Diário ===
-
   const handleNewDiary = useCallback(() => {
     if (!currentProject) return;
-    const planning = loadPlanning();
-    const newDiary = createNewDiary(currentProject, diaries, planning);
+    const planningEntries = loadPlanning();
+    const newDiary = createNewDiary(currentProject, diaries, planningEntries);
     setCurrentDiary(newDiary);
     setReadOnly(false);
     setView('form');
@@ -102,8 +95,6 @@ const Index = () => {
     toast.success('Diário excluído com sucesso!');
   }, [currentProject]);
 
-  // === Navegação ===
-
   const handleCancel = useCallback(() => {
     if (view === 'form') setView('diaries');
     else if (view === 'project-settings') setView(currentProject ? 'diaries' : 'projects');
@@ -112,35 +103,18 @@ const Index = () => {
     setCurrentDiary(null);
   }, [view, currentProject]);
 
+  const handleEdit = useCallback(() => setReadOnly(false), []);
+
+  const handleOpenPlanning = useCallback(() => setView('planning'), []);
+
   const projectDiaries = currentProject
     ? diaries.filter(d => d.projectId === currentProject.id)
     : [];
 
-  // === Render ===
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-muted-foreground text-sm">Carregando dados...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <p className="text-destructive font-medium mb-2">⚠️ {error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:opacity-90 transition-opacity"
-          >
-            Recarregar
-          </button>
-        </div>
+        <p className="text-muted-foreground">Carregando...</p>
       </div>
     );
   }
@@ -153,7 +127,7 @@ const Index = () => {
           onSelect={handleSelectProject}
           onNew={handleNewProject}
           onDelete={handleDeleteProject}
-          onSettings={(p) => { setCurrentProject(p); setView('project-settings'); }}
+          onSettings={handleOpenSettings}
         />
       )}
       {view === 'diaries' && currentProject && (
@@ -163,8 +137,8 @@ const Index = () => {
           onNew={handleNewDiary}
           onOpen={handleOpenDiary}
           onBack={() => setView('projects')}
-          onSettings={() => setView('project-settings')}
-          onPlanning={() => setView('planning')}
+          onSettings={() => { setView('project-settings'); }}
+          onPlanning={handleOpenPlanning}
         />
       )}
       {view === 'form' && currentDiary && currentProject && (
@@ -175,7 +149,7 @@ const Index = () => {
           readOnly={readOnly}
           onSave={handleSaveDiary}
           onCancel={handleCancel}
-          onEdit={() => setReadOnly(false)}
+          onEdit={handleEdit}
           onBack={() => { setView('diaries'); setCurrentDiary(null); }}
           onDelete={handleDeleteDiary}
         />
