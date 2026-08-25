@@ -324,6 +324,9 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
         <TabsContent value="staff">
           <div className="bg-card rounded-lg p-6 border overflow-x-auto">
             <h2 className="section-title">Quadro de Pessoal — JPL GOMES</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              As quantidades e observações são definidas nas Configurações da Obra (aba Equipes) e replicadas automaticamente para cada novo diário.
+            </p>
             <table className="data-table">
               <thead>
                 <tr>
@@ -345,32 +348,8 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
                         </td>
                       )}
                       <td>{s.role}</td>
-                      <td>
-                        <Input
-                          type="number" min={0}
-                          value={s.quantity || ''}
-                          onChange={e => {
-                            const arr = [...diary.staffJpl];
-                            arr[i] = { ...arr[i], quantity: parseInt(e.target.value) || 0 };
-                            update('staffJpl', arr);
-                          }}
-                          disabled={readOnly}
-                          className="w-20 h-8 text-center"
-                        />
-                      </td>
-                      <td>
-                        <Input
-                          value={s.observations}
-                          onChange={e => {
-                            const arr = [...diary.staffJpl];
-                            arr[i] = { ...arr[i], observations: e.target.value };
-                            update('staffJpl', arr);
-                          }}
-                          disabled={readOnly}
-                          className="h-8"
-                          placeholder="—"
-                        />
-                      </td>
+                      <td className="text-center font-medium">{s.quantity || ''}</td>
+                      <td className="text-muted-foreground">{s.observations || '—'}</td>
                     </tr>
                   );
                 })}
