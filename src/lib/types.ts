@@ -217,7 +217,7 @@ export function createNewDiary(project: Project, diaries: DiaryEntry[], planning
       thirdStopped: false,
     })),
     staffJpl: project.defaultStaff.flatMap(t =>
-      t.roles.map(r => ({ team: t.team, role: r, quantity: 0, observations: '' }))
+      t.roles.map(r => ({ team: t.team, role: r.role, quantity: r.quantity, observations: r.observations }))
     ),
     contractors: [...project.defaultContractors],
     equipmentJpl: project.defaultEquipment.map(e => ({ ...e, operating: false, stopped: false })),
