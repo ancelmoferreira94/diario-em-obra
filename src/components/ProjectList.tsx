@@ -21,9 +21,20 @@ const ProjectList = ({ projects, onSelect, onNew, onDelete, onSettings }: Projec
             <h1 className="text-2xl font-bold">Diário de Obra</h1>
             <p className="text-primary-foreground/80 text-sm mt-1">JPL GOMES ENGENHARIA LTDA</p>
           </div>
-          <Button onClick={onNew} variant="secondary" size="lg" className="gap-2">
-            <Plus className="h-5 w-5" /> Nova Obra
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={onNew} variant="secondary" size="lg" className="gap-2">
+              <Plus className="h-5 w-5" /> Nova Obra
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+              title="Sair"
+              onClick={() => supabase.auth.signOut()}
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </div>
 
