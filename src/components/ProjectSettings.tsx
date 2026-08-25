@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Project, ServiceCatalogItem } from '@/lib/types';
+import { Project, ServiceCatalogItem, DefaultStaffRole } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -50,7 +50,15 @@ const ProjectSettings = ({ project: initial, onSave, onCancel }: ProjectSettings
   };
 
   const addStaffTeam = () => {
-    update('defaultStaff', [...project.defaultStaff, { team: '', roles: [''] }]);
+    update('defaultStaff', [...project.defaultStaff, { team: '', roles: [{ role: '', quantity: 0, observations: '' }] }]);
+  };
+
+  const updateStaffRole = (ti: number, ri: number, field: keyof DefaultStaffRole, value: string | number) => {
+    const arr = [...project.defaultStaff];
+    const roles = [...arr[ti].roles];
+    roles[ri] = { ...roles[ri], [field]: value };
+    arr[ti] = { ...arr[ti], roles };
+    update('defaultStaff', arr);
   };
 
   const addEquipment = () => {
