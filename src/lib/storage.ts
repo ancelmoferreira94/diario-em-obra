@@ -1,4 +1,4 @@
-import { DiaryEntry, Project, MonthlyPlanningEntry } from './types';
+import { DiaryEntry, Project, MonthlyPlanningEntry, normalizeProject } from './types';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 
@@ -6,7 +6,7 @@ import type { Json } from '@/integrations/supabase/types';
 export async function loadProjects(): Promise<Project[]> {
   const { data, error } = await supabase.from('projects').select('*');
   if (error) { console.error('loadProjects error:', error); return []; }
-  return (data || []).map(row => row.data as unknown as Project);
+  return (data || []).map(row => normalizeProject(row.data as unknown as Project));
 }
 
 export async function saveProject(project: Project): Promise<Project[]> {

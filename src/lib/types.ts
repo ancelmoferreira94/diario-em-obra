@@ -179,7 +179,7 @@ export function createDefaultProject(): Project {
     contractStart: '2023-10-01',
     contractEnd: '2026-09-30',
     serviceCatalog: DEFAULT_SERVICE_CATALOG.map(s => ({ ...s, id: crypto.randomUUID() })),
-    defaultStaff: DEFAULT_STAFF.map(s => ({ ...s })),
+    defaultStaff: DEFAULT_STAFF.map(s => ({ team: s.team, roles: s.roles.map(r => ({ ...r })) })),
     defaultEquipment: DEFAULT_EQUIPMENT.map(e => ({ ...e })),
     defaultContractors: DEFAULT_CONTRACTORS.map(c => ({ ...c })),
   };
