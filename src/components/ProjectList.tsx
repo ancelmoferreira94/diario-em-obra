@@ -1,7 +1,8 @@
 import { Project } from '@/lib/types';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, FolderOpen, Settings, Trash2 } from 'lucide-react';
+import { Plus, FolderOpen, Settings, Trash2, LogOut } from 'lucide-react';
 
 interface ProjectListProps {
   projects: Project[];
