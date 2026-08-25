@@ -79,6 +79,12 @@ export interface MonthlyPlanningEntry {
   observations: string;
 }
 
+export interface DefaultStaffRole {
+  role: string;
+  quantity: number;
+  observations: string;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -88,9 +94,26 @@ export interface Project {
   contractStart: string;
   contractEnd: string;
   serviceCatalog: ServiceCatalogItem[];
-  defaultStaff: { team: string; roles: string[] }[];
+  defaultStaff: { team: string; roles: DefaultStaffRole[] }[];
   defaultEquipment: Omit<EquipmentRow, 'operating' | 'stopped'>[];
   defaultContractors: ContractorRow[];
+}
+
+/**
+ * Normalize a project loaded from storage, converting legacy formats
+ * (roles as plain string[]) to the current shape.
+ */
+export function normalizeProject(p: Project): Project {
+  if (!p) return p;
+  const defaultStaff = (p.defaultStaff || []).map(t => ({
+    team: t.team,
+    roles: (t.roles || []).map(r =>
+      typeof r === 'string'
+        ? { role: r, quantity: 0, observations: '' }
+        : { role: r.role, quantity: r.quantity ?? 0, observations: r.observations ?? '' }
+    ),
+  }));
+  return { ...p, defaultStaff };
 }
 
 export interface DiaryEntry {
@@ -119,18 +142,21 @@ export const DEFAULT_SERVICE_CATALOG: ServiceCatalogItem[] = [
   { id: crypto.randomUUID(), description: 'Conservação', detail: 'CONSERVAÇÃO ROTINEIRA', unit: 'mês', unitPrice: 97764.07 },
 ];
 
-export const DEFAULT_STAFF: { team: string; roles: string[] }[] = [
-  { team: 'Administrativa', roles: ['Gerente de Contrato', 'Equipe Técnica', 'Equipe Administrativa', 'Equipe de Segurança'] },
-  { team: 'Conservação', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
-  { team: 'Roçada', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
-  { team: 'Pavimentação', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais', 'Sinalização', 'Profissionais Terceiros'] },
-  { team: 'Britagem', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
-  { team: 'Segurança do Trabalho', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
-  { team: 'Micro Revestimento', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
-  { team: 'Limpeza', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
-  { team: 'Usina', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
-  { team: 'Laboratório', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
-  { team: 'Sinalização', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
+const staffRoles = (roles: string[]): DefaultStaffRole[] =>
+  roles.map(role => ({ role, quantity: 0, observations: '' }));
+
+export const DEFAULT_STAFF: { team: string; roles: DefaultStaffRole[] }[] = [
+  { team: 'Administrativa', roles: staffRoles(['Gerente de Contrato', 'Equipe Técnica', 'Equipe Administrativa', 'Equipe de Segurança']) },
+  { team: 'Conservação', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
+  { team: 'Roçada', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
+  { team: 'Pavimentação', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais', 'Sinalização', 'Profissionais Terceiros']) },
+  { team: 'Britagem', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
+  { team: 'Segurança do Trabalho', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
+  { team: 'Micro Revestimento', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
+  { team: 'Limpeza', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
+  { team: 'Usina', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
+  { team: 'Laboratório', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
+  { team: 'Sinalização', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
 ];
 
 export const DEFAULT_EQUIPMENT: Omit<EquipmentRow, 'operating' | 'stopped'>[] = [
@@ -153,7 +179,7 @@ export function createDefaultProject(): Project {
     contractStart: '2023-10-01',
     contractEnd: '2026-09-30',
     serviceCatalog: DEFAULT_SERVICE_CATALOG.map(s => ({ ...s, id: crypto.randomUUID() })),
-    defaultStaff: DEFAULT_STAFF.map(s => ({ ...s })),
+    defaultStaff: DEFAULT_STAFF.map(s => ({ team: s.team, roles: s.roles.map(r => ({ ...r })) })),
     defaultEquipment: DEFAULT_EQUIPMENT.map(e => ({ ...e })),
     defaultContractors: DEFAULT_CONTRACTORS.map(c => ({ ...c })),
   };
@@ -191,7 +217,7 @@ export function createNewDiary(project: Project, diaries: DiaryEntry[], planning
       thirdStopped: false,
     })),
     staffJpl: project.defaultStaff.flatMap(t =>
-      t.roles.map(r => ({ team: t.team, role: r, quantity: 0, observations: '' }))
+      t.roles.map(r => ({ team: t.team, role: r.role, quantity: r.quantity, observations: r.observations }))
     ),
     contractors: [...project.defaultContractors],
     equipmentJpl: project.defaultEquipment.map(e => ({ ...e, operating: false, stopped: false })),

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Project, ServiceCatalogItem } from '@/lib/types';
+import { Project, ServiceCatalogItem, DefaultStaffRole } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -50,7 +50,15 @@ const ProjectSettings = ({ project: initial, onSave, onCancel }: ProjectSettings
   };
 
   const addStaffTeam = () => {
-    update('defaultStaff', [...project.defaultStaff, { team: '', roles: [''] }]);
+    update('defaultStaff', [...project.defaultStaff, { team: '', roles: [{ role: '', quantity: 0, observations: '' }] }]);
+  };
+
+  const updateStaffRole = (ti: number, ri: number, field: keyof DefaultStaffRole, value: string | number) => {
+    const arr = [...project.defaultStaff];
+    const roles = [...arr[ti].roles];
+    roles[ri] = { ...roles[ri], [field]: value };
+    arr[ti] = { ...arr[ti], roles };
+    update('defaultStaff', arr);
   };
 
   const addEquipment = () => {
@@ -175,7 +183,7 @@ const ProjectSettings = ({ project: initial, onSave, onCancel }: ProjectSettings
           <div className="bg-card rounded-lg p-6 border">
             <h2 className="section-title">Equipes Padrão</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              Defina as equipes e funções padrão para os diários desta obra.
+              Defina as equipes e funções padrão para os diários desta obra. A quantidade e a observação de cada função são preenchidas aqui e replicadas automaticamente em cada novo diário.
             </p>
             {project.defaultStaff.map((team, ti) => (
               <div key={ti} className="mb-4 p-4 border rounded-md">
@@ -191,16 +199,20 @@ const ProjectSettings = ({ project: initial, onSave, onCancel }: ProjectSettings
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
+                <div className="hidden md:grid grid-cols-[1fr_80px_1fr_32px] gap-2 ml-4 mb-1 text-xs font-medium text-muted-foreground">
+                  <span>Função</span>
+                  <span className="text-center">Qtd</span>
+                  <span>Observação</span>
+                  <span></span>
+                </div>
                 {team.roles.map((role, ri) => (
-                  <div key={ri} className="flex items-center gap-2 ml-4 mb-1">
-                    <Input value={role} className="h-7 text-sm" placeholder="Função"
-                      onChange={e => {
-                        const arr = [...project.defaultStaff];
-                        const roles = [...arr[ti].roles];
-                        roles[ri] = e.target.value;
-                        arr[ti] = { ...arr[ti], roles };
-                        update('defaultStaff', arr);
-                      }} />
+                  <div key={ri} className="grid grid-cols-1 md:grid-cols-[1fr_80px_1fr_32px] items-center gap-2 ml-4 mb-1">
+                    <Input value={role.role} className="h-7 text-sm" placeholder="Função"
+                      onChange={e => updateStaffRole(ti, ri, 'role', e.target.value)} />
+                    <Input type="number" min={0} value={role.quantity || ''} className="h-7 text-sm text-center" placeholder="0"
+                      onChange={e => updateStaffRole(ti, ri, 'quantity', parseInt(e.target.value) || 0)} />
+                    <Input value={role.observations} className="h-7 text-sm" placeholder="Observação"
+                      onChange={e => updateStaffRole(ti, ri, 'observations', e.target.value)} />
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive shrink-0"
                       onClick={() => {
                         const arr = [...project.defaultStaff];
@@ -214,7 +226,7 @@ const ProjectSettings = ({ project: initial, onSave, onCancel }: ProjectSettings
                 <Button variant="ghost" size="sm" className="ml-4 mt-1 text-xs gap-1"
                   onClick={() => {
                     const arr = [...project.defaultStaff];
-                    arr[ti] = { ...arr[ti], roles: [...arr[ti].roles, ''] };
+                    arr[ti] = { ...arr[ti], roles: [...arr[ti].roles, { role: '', quantity: 0, observations: '' }] };
                     update('defaultStaff', arr);
                   }}>
                   <Plus className="h-3 w-3" /> Função
