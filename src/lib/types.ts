@@ -142,18 +142,21 @@ export const DEFAULT_SERVICE_CATALOG: ServiceCatalogItem[] = [
   { id: crypto.randomUUID(), description: 'Conservação', detail: 'CONSERVAÇÃO ROTINEIRA', unit: 'mês', unitPrice: 97764.07 },
 ];
 
-export const DEFAULT_STAFF: { team: string; roles: string[] }[] = [
-  { team: 'Administrativa', roles: ['Gerente de Contrato', 'Equipe Técnica', 'Equipe Administrativa', 'Equipe de Segurança'] },
-  { team: 'Conservação', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
-  { team: 'Roçada', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
-  { team: 'Pavimentação', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais', 'Sinalização', 'Profissionais Terceiros'] },
-  { team: 'Britagem', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
-  { team: 'Segurança do Trabalho', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
-  { team: 'Micro Revestimento', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
-  { team: 'Limpeza', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
-  { team: 'Usina', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
-  { team: 'Laboratório', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
-  { team: 'Sinalização', roles: ['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais'] },
+const staffRoles = (roles: string[]): DefaultStaffRole[] =>
+  roles.map(role => ({ role, quantity: 0, observations: '' }));
+
+export const DEFAULT_STAFF: { team: string; roles: DefaultStaffRole[] }[] = [
+  { team: 'Administrativa', roles: staffRoles(['Gerente de Contrato', 'Equipe Técnica', 'Equipe Administrativa', 'Equipe de Segurança']) },
+  { team: 'Conservação', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
+  { team: 'Roçada', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
+  { team: 'Pavimentação', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais', 'Sinalização', 'Profissionais Terceiros']) },
+  { team: 'Britagem', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
+  { team: 'Segurança do Trabalho', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
+  { team: 'Micro Revestimento', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
+  { team: 'Limpeza', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
+  { team: 'Usina', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
+  { team: 'Laboratório', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
+  { team: 'Sinalização', roles: staffRoles(['Encarregados/Supervisores', 'Profissionais Técnicos', 'Operacionais']) },
 ];
 
 export const DEFAULT_EQUIPMENT: Omit<EquipmentRow, 'operating' | 'stopped'>[] = [
