@@ -102,7 +102,19 @@ const Auth = () => {
               {loading ? 'Aguarde...' : mode === 'login' ? 'Entrar' : 'Criar conta'}
             </Button>
           </form>
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-card px-2 text-xs text-muted-foreground">ou</span>
+            </div>
+          </div>
+          <Button type="button" variant="outline" className="w-full" disabled={loading} onClick={handleGoogle}>
+            Continuar com Google
+          </Button>
           <div className="mt-4 text-center">
+
             <button
               type="button"
               className="text-sm text-primary hover:underline"
