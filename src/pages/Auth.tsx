@@ -22,7 +22,25 @@ const Auth = () => {
     });
   }, [navigate]);
 
+  const handleGoogle = async () => {
+    setLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast.error('Não foi possível entrar com o Google.');
+        return;
+      }
+      if (result.redirected) return;
+      navigate('/', { replace: true });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
+
     e.preventDefault();
     setLoading(true);
     try {
