@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable/index';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+
 
 const Auth = () => {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
@@ -20,7 +22,25 @@ const Auth = () => {
     });
   }, [navigate]);
 
+  const handleGoogle = async () => {
+    setLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast.error('Não foi possível entrar com o Google.');
+        return;
+      }
+      if (result.redirected) return;
+      navigate('/', { replace: true });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
+
     e.preventDefault();
     setLoading(true);
     try {
@@ -82,7 +102,19 @@ const Auth = () => {
               {loading ? 'Aguarde...' : mode === 'login' ? 'Entrar' : 'Criar conta'}
             </Button>
           </form>
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-card px-2 text-xs text-muted-foreground">ou</span>
+            </div>
+          </div>
+          <Button type="button" variant="outline" className="w-full" disabled={loading} onClick={handleGoogle}>
+            Continuar com Google
+          </Button>
           <div className="mt-4 text-center">
+
             <button
               type="button"
               className="text-sm text-primary hover:underline"
