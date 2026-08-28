@@ -19,16 +19,19 @@ export type Database = {
           data: Json | null
           id: string
           project_id: string | null
+          user_id: string
         }
         Insert: {
           data?: Json | null
           id: string
           project_id?: string | null
+          user_id?: string
         }
         Update: {
           data?: Json | null
           id?: string
           project_id?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -45,16 +48,19 @@ export type Database = {
           data: Json | null
           id: string
           name: string
+          user_id: string
         }
         Insert: {
           data?: Json | null
           id: string
           name: string
+          user_id?: string
         }
         Update: {
           data?: Json | null
           id?: string
           name?: string
+          user_id?: string
         }
         Relationships: []
       }

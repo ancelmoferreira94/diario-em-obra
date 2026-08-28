@@ -10,10 +10,13 @@ export async function loadProjects(): Promise<Project[]> {
 }
 
 export async function saveProject(project: Project): Promise<Project[]> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) { console.error('saveProject: no authenticated user'); return loadProjects(); }
   const { error } = await supabase.from('projects').upsert({
     id: project.id,
     name: project.name,
     data: project as unknown as Json,
+    user_id: auth.user.id,
   });
   if (error) console.error('saveProject error:', error);
   return loadProjects();
@@ -35,10 +38,13 @@ export async function loadDiaries(projectId?: string): Promise<DiaryEntry[]> {
 }
 
 export async function saveDiary(diary: DiaryEntry): Promise<DiaryEntry[]> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) { console.error('saveDiary: no authenticated user'); return loadDiaries(diary.projectId); }
   const { error } = await supabase.from('diaries').upsert({
     id: diary.id,
     project_id: diary.projectId,
     data: diary as unknown as Json,
+    user_id: auth.user.id,
   });
   if (error) console.error('saveDiary error:', error);
   return loadDiaries(diary.projectId);
