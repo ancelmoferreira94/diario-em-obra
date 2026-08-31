@@ -53,8 +53,11 @@ const WEEKDAYS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'q
 const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCancel, onEdit, onBack, onDelete }: DiaryFormProps) => {
   const [diary, setDiary] = useState<DiaryEntry>(() => {
     const d = { ...initial };
+    const { month, year } = getServiceMonthYear(d.date);
+    const planning = loadPlanning().find(p => p.projectId === d.projectId && p.month === month && p.year === year);
     d.executedServices = d.executedServices.map((s, i) => ({
       ...s,
+      plannedMonth: planning?.services.find(ps => ps.serviceId === s.serviceId)?.plannedMonth ?? s.plannedMonth,
       executedMonth: getMonthlyAccumulated(allDiaries, d, i),
     }));
     return d;
