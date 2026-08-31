@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { DiaryEntry, Project, getMonthlyAccumulated } from '@/lib/types';
+import { DiaryEntry, Project, getMonthlyAccumulated, getServiceMonthYear } from '@/lib/types';
+import { loadPlanning } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -53,8 +54,11 @@ const WEEKDAYS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'q
 const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCancel, onEdit, onBack, onDelete }: DiaryFormProps) => {
   const [diary, setDiary] = useState<DiaryEntry>(() => {
     const d = { ...initial };
+    const { month, year } = getServiceMonthYear(d.date);
+    const planning = loadPlanning().find(p => p.projectId === d.projectId && p.month === month && p.year === year);
     d.executedServices = d.executedServices.map((s, i) => ({
       ...s,
+      plannedMonth: planning?.services.find(ps => ps.serviceId === s.serviceId)?.plannedMonth ?? s.plannedMonth,
       executedMonth: getMonthlyAccumulated(allDiaries, d, i),
     }));
     return d;
@@ -554,10 +558,7 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
                         }} />
                     </td>
                     <td className="text-center font-medium">{s.executedMonth.toFixed(3).replace('.', ',')}</td>
-                    <td>
-                      <DecimalInput value={s.plannedMonth} disabled={readOnly} className="h-7 w-20 text-xs text-center" min={0}
-                        onChange={val => { const arr = [...diary.executedServices]; arr[i] = { ...arr[i], plannedMonth: val }; update('executedServices', arr); }} />
-                    </td>
+                    <td className="text-center font-medium">{s.plannedMonth.toFixed(3).replace('.', ',')}</td>
                   </tr>
                 ))}
               </tbody>
