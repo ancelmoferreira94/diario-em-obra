@@ -558,10 +558,7 @@ const DiaryForm = ({ project, diary: initial, allDiaries, readOnly, onSave, onCa
                         }} />
                     </td>
                     <td className="text-center font-medium">{s.executedMonth.toFixed(3).replace('.', ',')}</td>
-                    <td>
-                      <DecimalInput value={s.plannedMonth} disabled={readOnly} className="h-7 w-20 text-xs text-center" min={0}
-                        onChange={val => { const arr = [...diary.executedServices]; arr[i] = { ...arr[i], plannedMonth: val }; update('executedServices', arr); }} />
-                    </td>
+                    <td className="text-center font-medium">{s.plannedMonth.toFixed(3).replace('.', ',')}</td>
                   </tr>
                 ))}
               </tbody>
